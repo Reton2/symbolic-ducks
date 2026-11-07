@@ -58,7 +58,7 @@ indent-style = "space"
 
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/faithful_worlds"]
+packages = ["src/app"]
 
 [build-system]
 requires = ["hatchling"]

@@ -1,0 +1,30 @@
+services:
+  redis-bus:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  control-plane:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVICE_ROLE=ALL
+      - REDIS_URL=redis://redis-bus:6379/0
+      - ACTIVE_DOMAIN=quant_risk
+      - DOPPLER_TOKEN=${DOPPLER_TOKEN:-}
+      - SECRETS_PROVIDER=DOPPLER_ZERO_TRUST
+    depends_on:
+      - redis-bus
+
+  data-plane-worker:
+    build: .
+    environment:
+      - SERVICE_ROLE=DATA_PLANE
+      - REDIS_URL=redis://redis-bus:6379/0
+      - ACTIVE_DOMAIN=quant_risk
+      - DOPPLER_TOKEN=${DOPPLER_TOKEN:-}
+    deploy:
+      replicas: 2
+    depends_on:
+      - redis-bus
