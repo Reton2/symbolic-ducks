@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -26,6 +27,30 @@ from app.schemas.schemas import (
 )
 
 logger = logging.getLogger("app.services.api_server")
+
+
+def configure_logger(level_name: str = "INFO") -> None:
+    """Ensure the module logger has an active console StreamHandler so INFO/DEBUG
+
+    messages are visible in the terminal even without root basicConfig.
+    """
+    numeric_level = getattr(logging, level_name.upper(), logging.INFO)
+    logger.setLevel(numeric_level)
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setLevel(numeric_level)
+        handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s [%(levelname)s] [%(name)s]: %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
+        logger.addHandler(handler)
+        logger.propagate = False
+
+
+# Initialize console logging on import
+configure_logger(os.getenv("LOG_LEVEL", "INFO"))
 
 
 class AppState:

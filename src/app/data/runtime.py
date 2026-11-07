@@ -162,7 +162,11 @@ class TopologicalDAGRuntime:
     ) -> TelemetryEvaluationResult:
         """Executes a single fast-path pass through the compiled DAG."""
         t0 = time.perf_counter_ns()
-        state: dict[str, Any] = {**self.param_values, **input_telemetry}
+        state: dict[str, Any] = {
+            v.var_id: v.default_value for v in self.graph.variables.values()
+        }
+        state.update(self.param_values)
+        state.update(input_telemetry)
         active_lineage: list[str] = []
 
         for target_id, fn in self.compiled_steps:

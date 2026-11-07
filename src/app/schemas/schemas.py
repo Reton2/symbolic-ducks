@@ -359,6 +359,29 @@ class CounterfactualResult(BaseModel):
     message: str = ""
 
 
+class DeadLogicClassification(StrEnum):
+    """Classification of why an action state or gate is unsatisfiable (dead logic)."""
+
+    PARAMETER_MISCALIBRATION = "PARAMETER_MISCALIBRATION"
+    WRONG_RULE_COMPILER = "WRONG_RULE_COMPILER"
+    WRONG_POLICY_MANDATE = "WRONG_POLICY_MANDATE"
+
+
+class DeadLogicDiagnostic(BaseModel):
+    """Deep root-cause diagnostic report explaining unreachable states via Z3 unsat cores."""
+
+    target_variable: str
+    human_name: str
+    target_state: str
+    classification: DeadLogicClassification
+    explanation: str
+    conflicting_equation_ids: list[str] = Field(default_factory=list)
+    conflicting_sentence_ids: list[int] = Field(default_factory=list)
+    conflicting_sentences_text: list[str] = Field(default_factory=list)
+    suggested_remediation: str = ""
+    relaxed_parameter_solutions: dict[str, float] = Field(default_factory=dict)
+
+
 class ReachabilityProof(BaseModel):
     """Proof record for an output state reachable under active parameter values."""
 
@@ -366,6 +389,7 @@ class ReachabilityProof(BaseModel):
     human_name: str
     target_state: str
     reachable: bool
+    diagnostic: DeadLogicDiagnostic | None = None
 
 
 class GraphVerificationReport(BaseModel):
@@ -373,6 +397,9 @@ class GraphVerificationReport(BaseModel):
 
     status: VerificationStatus
     consistent: bool
+    is_dag_consistent: bool = True
+    reachable_count: int = 0
+    dead_count: int = 0
     dead_state_warnings: list[str] = Field(default_factory=list)
     reachability_proofs: list[ReachabilityProof] = Field(default_factory=list)
 

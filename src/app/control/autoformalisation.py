@@ -1053,7 +1053,7 @@ class LLMMapReduceExtractor:
                         {"role": "user", "content": batch_text},
                     ],
                     extra_body={
-                        "reasoning": {"enabled": False},
+                        "reasoning": {"enabled": True},
                         "provider": {"only": ["alibaba"], "allow_fallbacks": False},
                     },
                     temperature=self.config.temperature,
@@ -1070,6 +1070,9 @@ class LLMMapReduceExtractor:
                 ) from err
 
         raw_content = res.choices[0].message.content or "{}"
+        logger.info(
+            "Batch %d/%d RAW LLM output: %s", batch_idx + 1, total_batches, raw_content
+        )
         clean_content = extract_json_payload(raw_content)
         try:
             response = SentenceMapResponse.model_validate_json(clean_content)
@@ -1639,7 +1642,9 @@ class DeepAutoformalizer:
         sentences: list[RawSentence],
         log: list[str],
     ) -> AutonomousPolicyGraph:
-        assert self.client is not None
+        if self.client is None:
+            return self._run_offline_fallback_pipeline(sentences, log)
+
         extractor = LLMMapReduceExtractor(self.client, self.config)
         stage2_msg = (
             f"[Stage 2 - Map-Reduce AI Extractor] Extracting cross-sentence entity "
@@ -1659,3 +1664,108 @@ class DeepAutoformalizer:
 
         eq_response = await extractor.synthesize_equations(concepts, links)
         return extractor.build_graph(concepts, eq_response, sentences, log)
+
+    def _run_offline_fallback_pipeline(
+        self,
+        sentences: list[RawSentence],
+        log: list[str],
+    ) -> AutonomousPolicyGraph:
+        log.append(
+            "[Stage 2 - Offline Deterministic Extractor] Running deterministic entity/causal extraction (no LLM client configured)..."
+        )
+        vars_dict: dict[str, InferredVariable] = {}
+        equations: dict[str, InferredEquation] = {}
+
+        discovered: list[str] = []
+        for s in sentences:
+            words = re.findall(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b", s.text)
+            for w in words:
+                cid = re.sub(r"[^a-z0-9]+", "_", w.lower()).strip("_")
+                if cid and cid not in discovered:
+                    discovered.append(cid)
+                    is_out = any(
+                        k in cid for k in ("directive", "action", "decision", "output")
+                    )
+                    is_param = any(
+                        k in cid for k in ("param", "threshold", "limit", "bound")
+                    )
+                    sort = VariableSort.INT if is_out else VariableSort.REAL
+                    role = (
+                        VariableRole.OUTPUT
+                        if is_out
+                        else (
+                            VariableRole.PARAMETER if is_param else VariableRole.INPUT
+                        )
+                    )
+                    ord_levels = (
+                        {0: "NOMINAL", 1: "ALERT", 2: "HALT"} if is_out else None
+                    )
+                    vars_dict[cid] = InferredVariable(
+                        var_id=cid,
+                        human_name=w,
+                        role=role,
+                        sort=sort,
+                        min_bound=0.0,
+                        max_bound=2.0 if is_out else 100.0,
+                        default_value=0 if is_out else 10.0,
+                        ordinal_levels=ord_levels,
+                        source_sentence_ids=[s.index],
+                        source_excerpts=[s.text],
+                    )
+
+        if not vars_dict:
+            vars_dict["sample_input"] = InferredVariable(
+                var_id="sample_input",
+                human_name="Sample Input",
+                role=VariableRole.INPUT,
+                sort=VariableSort.REAL,
+                min_bound=0.0,
+                max_bound=100.0,
+                default_value=10.0,
+            )
+            vars_dict["sample_output"] = InferredVariable(
+                var_id="sample_output",
+                human_name="Sample Output",
+                role=VariableRole.OUTPUT,
+                sort=VariableSort.INT,
+                min_bound=0.0,
+                max_bound=2.0,
+                default_value=0,
+                ordinal_levels={0: "NOMINAL", 1: "HALT"},
+            )
+
+        inputs = [k for k, v in vars_dict.items() if v.role == VariableRole.INPUT]
+        outputs = [k for k, v in vars_dict.items() if v.role == VariableRole.OUTPUT]
+        if not outputs:
+            last_id = list(vars_dict.keys())[-1]
+            vars_dict[last_id].role = VariableRole.OUTPUT
+            outputs.append(last_id)
+
+        for out_id in outputs:
+            dep = inputs[0] if inputs else out_id
+            equations[out_id] = InferredEquation(
+                equation_id=f"eq_{out_id}",
+                target_var=out_id,
+                dependencies=[dep],
+                smt_expression=(
+                    f"If(v['{dep}'] > 50.0, 1, 0)"
+                    if vars_dict[out_id].sort == VariableSort.INT
+                    else f"If(v['{dep}'] > 50.0, 80.0, 20.0)"
+                ),
+                natural_language_logic=f"Escalate {out_id} when {dep} exceeds threshold",
+                source_sentence_ids=[0],
+            )
+
+        log.append(
+            f"[Stage 2B - Entity Resolution] Discovered {len(vars_dict)} variables and {len(equations)} causal equations."
+        )
+        return AutonomousPolicyGraph(
+            graph_id=f"graph_{uuid.uuid4().hex[:8]}",
+            title="Autoformalized Policy Graph (Offline Mode)",
+            raw_document_text="\n".join(s.text for s in sentences),
+            sentence_count=len(sentences),
+            variables=vars_dict,
+            equations=equations,
+            topological_order=list(equations.keys()),
+            cegis_compiler_log=log,
+        )
