@@ -60,6 +60,12 @@ def _align_numeric_pair(a: Any, b: Any) -> tuple[Any, Any]:
     return za, zb
 
 
+def z3_if(cond: Any, t_val: Any, f_val: Any) -> Any:
+    """Sort-aligned wrapper around `z3.If` that coerces mixed int/real branches."""
+    lhs, rhs = _align_numeric_pair(t_val, f_val)
+    return If(_to_z3_val(cond), lhs, rhs)
+
+
 def z3_min(*args: Any) -> Any:
     """Symbolic minimum conditional across one or more Z3 expressions."""
     if not args:
@@ -216,19 +222,6 @@ def _destruct_const_node(expr: z3.ExprRef, target_sort: TargetSortMode) -> str |
 
 def _destruct_ite_node(expr: z3.ExprRef, target_sort: TargetSortMode) -> str:
     cond, t_br, f_br = expr.arg(0), expr.arg(1), expr.arg(2)
-    ckind = cond.decl().kind()
-    if (
-        ckind in (z3.Z3_OP_LE, z3.Z3_OP_LT)
-        and cond.arg(0).eq(t_br)
-        and cond.arg(1).eq(f_br)
-    ):
-        return f"z3_min({destruct_z3_expr(t_br, target_sort)}, {destruct_z3_expr(f_br, target_sort)})"
-    if (
-        ckind in (z3.Z3_OP_GE, z3.Z3_OP_GT)
-        and cond.arg(0).eq(t_br)
-        and cond.arg(1).eq(f_br)
-    ):
-        return f"z3_max({destruct_z3_expr(t_br, target_sort)}, {destruct_z3_expr(f_br, target_sort)})"
     return (
         f"If({destruct_z3_expr(cond, 'bool')}, "
         f"{destruct_z3_expr(t_br, target_sort)}, "
@@ -322,7 +315,7 @@ def evaluate_z3_symbolic_expression(expr_str: str, z3_vars: dict[str, Any]) -> A
         "And": And,
         "Or": Or,
         "Not": Not,
-        "If": If,
+        "If": z3_if,
         "z3_min": z3_min,
         "z3_max": z3_max,
         "num_not": num_not,

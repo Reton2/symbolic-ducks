@@ -19,7 +19,6 @@ from z3 import (
     Bool,
     BoolRef,
     BoolVal,
-    If,
     Implies,
     Int,
     IntVal,
@@ -44,6 +43,7 @@ from app.control.smt_helpers import (
     destruct_z3_expr,
     evaluate_z3_symbolic_expression,
     extract_z3_dependencies,
+    z3_if,
 )
 from app.schemas.schemas import (
     AutonomousPolicyGraph,
@@ -104,7 +104,7 @@ For every sentence, extract:
 Output strictly valid JSON: {"entities": [...], "causal_links": [...]}"""
 
 EQUATION_SYNTHESIS_PROMPT = """You are a Z3 Symbolic Constraint Architect.
-You will receive the resolved entity vocabulary (`entities`) and aggregated causal dependencies (`aggregated_targets` and `causal_links`) extracted from a policy document.
+You will receive the resolved entity vocabulary (`entities`) and target causal specifications (`targets`) extracted from a policy document.
 
 Output ONLY a ```python ... ``` block that initializes `W_hat = []` and appends one `W_hat.append(target_var == <z3_expr>)` constraint per target variable.
 Do NOT define functions, classes, loops, imports, helper calls, or intermediate variables. Reference every entity directly by its bare identifier.
@@ -708,7 +708,6 @@ class Z3SynthesisSandbox:
         self.concepts = concepts
         self.links = links
         self.v = Z3SandboxVarStore()
-        self.solver = Solver()
         self.parameters: dict[str, dict[str, Any]] = {}
         self.equations: dict[str, dict[str, Any]] = {}
         self._init_concept_variables()
@@ -717,12 +716,8 @@ class Z3SynthesisSandbox:
         for cid, c in self.concepts.items():
             if c.sort == "real":
                 zvar: Any = Real(cid)
-                self.solver.add(zvar >= RealVal(float(c.min_bound)))
-                self.solver.add(zvar <= RealVal(float(c.max_bound)))
             elif c.sort == "int":
                 zvar = Int(cid)
-                self.solver.add(zvar >= IntVal(int(c.min_bound)))
-                self.solver.add(zvar <= IntVal(int(c.max_bound)))
             else:
                 zvar = Bool(cid)
             self.v[cid] = zvar
@@ -740,55 +735,63 @@ class Z3SynthesisSandbox:
                 return "bool"
         return "auto"
 
-    def declare_parameter(
-        self,
-        var_id: str,
-        human_name: str = "",
-        sort: str = "real",
-        min_bound: float = 0.0,
-        max_bound: float = 100.0,
-        default_value: float = 10.0,
-        source_sentence_ids: Sequence[int] = (),
-    ) -> Any:
-        """Mints a latent parameter in the Z3 sandbox and returns its live Z3 variable."""
-        norm_sort = sort if sort in ("real", "int", "bool") else "real"
-        if norm_sort == "int":
-            zvar: Any = Int(var_id)
-            self.solver.add(zvar >= IntVal(int(min_bound)))
-            self.solver.add(zvar <= IntVal(int(max_bound)))
-        elif norm_sort == "bool":
-            zvar = Bool(var_id)
-        else:
-            zvar = Real(var_id)
-            self.solver.add(zvar >= RealVal(float(min_bound)))
-            self.solver.add(zvar <= RealVal(float(max_bound)))
-
-        self.v[var_id] = zvar
-        self.parameters[var_id] = {
-            "var_id": var_id,
-            "human_name": human_name or var_id,
-            "sort": norm_sort,
-            "min_bound": float(min_bound),
-            "max_bound": float(max_bound),
-            "default_value": float(default_value),
-            "source_sentence_ids": [int(s) for s in source_sentence_ids],
-        }
-        return zvar
+    def _infer_parent_for_param(
+        self, param_id: str, sibling_deps: Sequence[str]
+    ) -> ResolvedConcept | None:
+        for dep in sibling_deps:
+            if dep in self.concepts and dep in param_id:
+                return self.concepts[dep]
+        for cid, c in self.concepts.items():
+            if cid in param_id:
+                return c
+        for dep in sibling_deps:
+            if dep in self.concepts and not self.concepts[dep].ordinal_levels:
+                return self.concepts[dep]
+        return None
 
     def _ensure_implicit_parameters(
         self, deps: Sequence[str], sids: Sequence[int]
     ) -> None:
         for dep in deps:
             if dep not in self.concepts and dep not in self.parameters:
-                zvar = self.v.get(dep)
-                inferred_sort = "int" if (is_expr(zvar) and is_int(zvar)) else "real"
+                parent_c = self._infer_parent_for_param(dep, deps)
+                if parent_c is not None and not parent_c.ordinal_levels:
+                    inferred_sort = "int" if parent_c.sort == "int" else "real"
+                    min_b = float(parent_c.min_bound)
+                    max_b = float(parent_c.max_bound)
+                else:
+                    zvar = self.v.get(dep)
+                    inferred_sort = (
+                        "int" if (is_expr(zvar) and is_int(zvar)) else "real"
+                    )
+                    min_b = 0.0
+                    max_b = 100.0
+
+                is_low_bad = any(
+                    w in dep
+                    for w in (
+                        "depth",
+                        "correlation",
+                        "alpha",
+                        "return",
+                        "momentum",
+                        "capacity",
+                        "feasibility",
+                        "quality",
+                    )
+                )
+                ratio = 0.25 if is_low_bad else 0.70
+                def_val = round((max_b - min_b) * ratio + min_b, 2)
+                if inferred_sort == "int":
+                    def_val = float(int(round(def_val)))
+
                 self.parameters[dep] = {
                     "var_id": dep,
                     "human_name": dep.replace("_", " ").title(),
                     "sort": inferred_sort,
-                    "min_bound": 0.0,
-                    "max_bound": 100.0,
-                    "default_value": 25.0,
+                    "min_bound": min_b,
+                    "max_bound": max_b,
+                    "default_value": def_val,
                     "source_sentence_ids": [int(s) for s in sids],
                 }
 
@@ -947,7 +950,7 @@ class Z3SynthesisSandbox:
                 "And": And,
                 "Or": Or,
                 "Not": Not,
-                "If": If,
+                "If": z3_if,
                 "Xor": Xor,
                 "Implies": Implies,
                 "Real": Real,
@@ -1169,16 +1172,14 @@ class LLMMapReduceExtractor:
                 "sort": str(c.sort),
                 "min_bound": c.min_bound,
                 "max_bound": c.max_bound,
-                "default_value": c.default_value,
                 "ordinal_levels": c.ordinal_levels,
-                "source_sentence_ids": sorted(c.sentence_ids),
             }
 
         grouped_links: dict[str, list[CausalLink]] = {}
         for link in links:
             grouped_links.setdefault(link.target_id, []).append(link)
 
-        aggregated_targets: dict[str, dict[str, Any]] = {}
+        targets: dict[str, dict[str, Any]] = {}
         for tid, tlinks in grouped_links.items():
             parents: list[str] = []
             thresholds: list[str] = []
@@ -1190,24 +1191,18 @@ class LLMMapReduceExtractor:
                     if th not in thresholds:
                         thresholds.append(th)
 
-            aggregated_targets[tid] = {
+            targets[tid] = {
                 "target_id": tid,
-                "target_spec": entity_specs.get(tid, {}),
                 "parent_ids": parents,
-                "parent_specs": {
-                    pid: entity_specs[pid] for pid in parents if pid in entity_specs
-                },
                 "logic_summaries": [
                     lnk.logic_summary for lnk in tlinks if lnk.logic_summary
                 ],
                 "qualitative_thresholds": thresholds,
-                "source_sentence_ids": sorted({lnk.sentence_id for lnk in tlinks}),
             }
 
         return {
             "entities": entity_specs,
-            "aggregated_targets": aggregated_targets,
-            "causal_links": [link.model_dump(mode="json") for link in links],
+            "targets": targets,
         }
 
     async def synthesize_equations(
@@ -1539,7 +1534,7 @@ class LinguisticGraphExtractor:
             equation_id=f"eq_{target_cid}",
             target_var=target_cid,
             dependencies=[d1, d2],
-            smt_expression=f"z3_min({e1}, {e2})",
+            smt_expression=f"If(({e1}) <= ({e2}), {e1}, {e2})",
             natural_language_logic=f"Conjunction minimum across {d1}, {d2}",
             source_sentence_ids=sids,
         )
@@ -1557,7 +1552,7 @@ class LinguisticGraphExtractor:
         ]
         smt_expr = terms[0]
         for t in terms[1:]:
-            smt_expr = f"z3_max({smt_expr}, {t})"
+            smt_expr = f"If(({smt_expr}) >= ({t}), {smt_expr}, {t})"
         return InferredEquation(
             equation_id=f"eq_{target_cid}",
             target_var=target_cid,
