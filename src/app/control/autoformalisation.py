@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -9,7 +10,8 @@ import random
 import re
 import uuid
 from collections.abc import Sequence
-from typing import Any, Literal
+from pathlib import Path
+from typing import Any
 
 import z3
 from openai import AsyncOpenAI
@@ -47,8 +49,10 @@ from app.control.smt_helpers import (
 )
 from app.schemas.schemas import (
     AutonomousPolicyGraph,
+    ConceptModality,
     InferredEquation,
     InferredVariable,
+    VariableRole,
     VariableSort,
 )
 
@@ -200,14 +204,14 @@ def infer_concept_modality(
     sort: str,
     ordinal_levels: dict[int, str] | None,
     name: str = "",
-) -> Literal["numerical", "ordinal", "categorical"]:
+) -> ConceptModality:
     """Classify a concept into numerical, ordinal, or categorical modality."""
     if not ordinal_levels:
-        return "numerical"
+        return ConceptModality.NUMERICAL
     low_name = name.lower()
     labels_joined = " ".join(ordinal_levels.values()).lower()
     if any(w in low_name for w in ("ordinal", "tier", "stage", "level", "rank")):
-        return "ordinal"
+        return ConceptModality.ORDINAL
     if any(
         w in low_name
         for w in (
@@ -226,7 +230,7 @@ def infer_concept_modality(
             "authority",
         )
     ):
-        return "categorical"
+        return ConceptModality.CATEGORICAL
     if any(
         w in labels_joined
         for w in (
@@ -242,8 +246,8 @@ def infer_concept_modality(
             "prohibited",
         )
     ):
-        return "categorical"
-    return "ordinal"
+        return ConceptModality.CATEGORICAL
+    return ConceptModality.ORDINAL
 
 
 class AutoformalizationError(Exception):
@@ -272,6 +276,8 @@ class AutoformalizerConfig(BaseModel):
     chunk_size: int = 30
     temperature: float = 0.0
     log_level: str = "INFO"
+    cache_dir: str = ".cache/autoformalisation"
+    enable_cache: bool = True
 
     @classmethod
     def from_env(cls) -> AutoformalizerConfig:
@@ -282,6 +288,12 @@ class AutoformalizerConfig(BaseModel):
             max_concurrency=int(os.getenv("MAX_CONCURRENCY", "16")),
             chunk_size=int(os.getenv("CHUNK_SIZE", "30")),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
+            cache_dir=os.getenv(
+                "AUTOFORMALISATION_CACHE_DIR",
+                os.getenv("CACHE_DIR", ".cache/autoformalisation"),
+            ),
+            enable_cache=os.getenv("ENABLE_CACHE", "true").lower()
+            in ("true", "1", "yes"),
         )
 
 
@@ -397,7 +409,7 @@ class SynthesizedParamSpec(BaseModel):
 
     var_id: str = ""
     human_name: str = ""
-    sort: Literal["real", "int", "bool"] = "real"
+    sort: VariableSort = VariableSort.REAL
     min_bound: float = 0.0
     max_bound: float = 100.0
     default_value: float = 10.0
@@ -405,10 +417,12 @@ class SynthesizedParamSpec(BaseModel):
 
     @field_validator("sort", mode="before")
     @classmethod
-    def coerce_param_sort(cls, v: Any) -> str:
-        if not v or v not in ("real", "int", "bool"):
-            return "real"
-        return v
+    def coerce_param_sort(cls, v: Any) -> VariableSort:
+        if isinstance(v, VariableSort):
+            return v
+        if not v or str(v).lower() not in ("real", "int", "bool"):
+            return VariableSort.REAL
+        return VariableSort(str(v).lower())
 
     @field_validator("min_bound", mode="before")
     @classmethod
@@ -548,7 +562,7 @@ class ResolvedConcept(BaseModel):
 
     cid: str
     human_name: str
-    sort: Literal["real", "int", "bool"]
+    sort: VariableSort
     ordinal_levels: dict[int, str] | None = None
     min_bound: float = 0.0
     max_bound: float = 100.0
@@ -560,7 +574,7 @@ class ResolvedConcept(BaseModel):
 class InferredSortSpec(BaseModel):
     """Sort and bounding specification inferred from concept naming."""
 
-    sort: Literal["real", "int", "bool"]
+    sort: VariableSort
     ordinal_levels: dict[int, str] | None = None
     min_bound: float
     max_bound: float
@@ -1261,7 +1275,7 @@ class LLMMapReduceExtractor:
             variables[eid] = InferredVariable(
                 var_id=eid,
                 human_name=ent.human_name,
-                role="INPUT",
+                role=VariableRole.INPUT,
                 sort=ent.sort,
                 ordinal_levels=ent.ordinal_levels,
                 min_bound=ent.min_bound,
@@ -1275,7 +1289,7 @@ class LLMMapReduceExtractor:
             variables[pid] = InferredVariable(
                 var_id=pid,
                 human_name=p.human_name or pid,
-                role="PARAMETER",
+                role=VariableRole.PARAMETER,
                 sort=p.sort,
                 min_bound=p.min_bound,
                 max_bound=p.max_bound,
@@ -1298,412 +1312,6 @@ class LLMMapReduceExtractor:
         return AutonomousPolicyGraph(
             graph_id=f"smt_hypergraph_{str(uuid.uuid4())[:6]}",
             title="Autonomously Inferred Sentence-Stream Policy Graph",
-            raw_document_text="\n\n".join(s.text for s in sentences),
-            sentence_count=len(sentences),
-            variables=variables,
-            equations=equations,
-            cegis_compiler_log=log,
-        )
-
-
-class LinguisticGraphExtractor:
-    """Order-independent linguistic dependency graph extractor."""
-
-    @staticmethod
-    def slugify(s: str) -> str:
-        s = re.sub(r"\([^)]*\)", "", s)
-        s = re.sub(r"[^a-zA-Z0-9]+", "_", s.lower()).strip("_")
-        return s[:38]
-
-    @staticmethod
-    def infer_sort(text_span: str) -> InferredSortSpec:
-        t = text_span.lower()
-        if any(w in t for w in ("ordinal", "tier", "stage", "level", "rank")):
-            return InferredSortSpec(
-                sort="int",
-                ordinal_levels={
-                    0: "Level_0_Nominal",
-                    1: "Level_1_Guarded",
-                    2: "Level_2_Elevated",
-                    3: "Level_3_Critical",
-                },
-                min_bound=0.0,
-                max_bound=3.0,
-                default_value=0.0,
-            )
-        if any(
-            w in t
-            for w in (
-                "categorical",
-                "status",
-                "mode",
-                "state",
-                "verdict",
-                "directive",
-                "regime",
-            )
-        ):
-            return InferredSortSpec(
-                sort="int",
-                ordinal_levels={
-                    0: "STATE_0_NOMINAL",
-                    1: "STATE_1_RESTRICTED",
-                    2: "STATE_2_HALT_CRITICAL",
-                },
-                min_bound=0.0,
-                max_bound=2.0,
-                default_value=0.0,
-            )
-        if "depth" in t or "rate" in t:
-            return InferredSortSpec(
-                sort="real",
-                min_bound=0.0,
-                max_bound=5_000_000.0,
-                default_value=500_000.0,
-            )
-        if any(w in t for w in ("correlation", "z-score", "alpha", "return")):
-            return InferredSortSpec(
-                sort="real",
-                min_bound=-5.0,
-                max_bound=5.0,
-                default_value=0.5,
-            )
-        return InferredSortSpec(
-            sort="real",
-            min_bound=0.0,
-            max_bound=100.0,
-            default_value=15.0,
-        )
-
-    def discover_concepts(
-        self, sentences: list[RawSentence]
-    ) -> tuple[dict[str, ResolvedConcept], dict[int, str]]:
-        concepts: dict[str, ResolvedConcept] = {}
-        last_subj: dict[int, str] = {}
-
-        for s in sentences:
-            m = INTRO_PATTERN.match(s.text)
-            if not m:
-                continue
-            subj_raw = m.group(1).strip()
-            if EXCLUDE_SUBJECT_PREFIXES.match(subj_raw):
-                continue
-            cid = self.slugify(subj_raw)
-            if len(cid) <= 3 or cid in concepts:
-                continue
-            sort_spec = self.infer_sort(f"{subj_raw} {s.text}")
-            concepts[cid] = ResolvedConcept(
-                cid=cid,
-                human_name=subj_raw,
-                sort=sort_spec.sort,
-                ordinal_levels=sort_spec.ordinal_levels,
-                min_bound=sort_spec.min_bound,
-                max_bound=sort_spec.max_bound,
-                default_value=sort_spec.default_value,
-                sentence_ids={s.index},
-                source_excerpts=[s.text],
-            )
-            last_subj[s.index] = cid
-
-        logger.debug(
-            "Linguistic parser discovered %d candidate concepts", len(concepts)
-        )
-        return concepts, last_subj
-
-    def _find_sentence_concepts(
-        self,
-        s_low: str,
-        concept_tokens: dict[str, set[str]],
-        concepts: dict[str, ResolvedConcept],
-    ) -> list[tuple[int, str]]:
-        mentioned: list[tuple[int, str]] = []
-        for cid, toks in concept_tokens.items():
-            if not toks:
-                continue
-            clean_name = (
-                re.sub(r"\([^)]*\)", "", concepts[cid].human_name).strip().lower()
-            )
-            pos = s_low.find(clean_name)
-            if pos != -1:
-                mentioned.append((pos, cid))
-                continue
-            matched = [t for t in toks if t in s_low]
-            if len(matched) >= 2 and len(matched) >= len(toks) * 0.65:
-                pos = min(s_low.find(t) for t in matched)
-                mentioned.append((pos, cid))
-        mentioned.sort(key=lambda x: x[0])
-        return mentioned
-
-    def _resolve_target_concept(
-        self,
-        sent: str,
-        mentioned: list[tuple[int, str]],
-        unique_mentioned: list[str],
-        sid: int,
-        last_subj: dict[int, str],
-    ) -> str:
-        target = last_subj.get(sid)
-        if target:
-            return target
-        trig = CAUSAL_PATTERN.search(sent)
-        trig_pos = trig.start() if trig else 0
-        if mentioned and mentioned[0][0] < trig_pos:
-            return mentioned[0][1]
-        if (sid - 1) in last_subj:
-            return last_subj[sid - 1]
-        return unique_mentioned[0]
-
-    def build_dependency_links(
-        self,
-        sentences: list[RawSentence],
-        concepts: dict[str, ResolvedConcept],
-        last_subj: dict[int, str],
-    ) -> tuple[dict[str, set[str]], dict[str, list[RawSentence]]]:
-        concept_tokens: dict[str, set[str]] = {
-            cid: set(re.findall(r"[a-z]{4,}", info.human_name.lower())) - STOP_WORDS
-            for cid, info in concepts.items()
-        }
-        edges: dict[str, set[str]] = {cid: set() for cid in concepts}
-        governing: dict[str, list[RawSentence]] = {cid: [] for cid in concepts}
-
-        for s in sentences:
-            s_low = s.text.lower()
-            mentioned = self._find_sentence_concepts(s_low, concept_tokens, concepts)
-            unique_mentioned: list[str] = []
-            for _, cid in mentioned:
-                if cid not in unique_mentioned:
-                    unique_mentioned.append(cid)
-                    concepts[cid].sentence_ids.add(s.index)
-
-            if not (CAUSAL_PATTERN.search(s.text) and unique_mentioned):
-                continue
-
-            target_cid = self._resolve_target_concept(
-                s.text, mentioned, unique_mentioned, s.index, last_subj
-            )
-            last_subj[s.index] = target_cid
-            parents = [c for c in unique_mentioned if c != target_cid]
-            if parents:
-                edges[target_cid].update(parents)
-                governing[target_cid].append(s)
-
-        return edges, governing
-
-    def build_variables(
-        self, concepts: dict[str, ResolvedConcept]
-    ) -> dict[str, InferredVariable]:
-        variables: dict[str, InferredVariable] = {}
-        for cid, info in concepts.items():
-            sids = sorted(info.sentence_ids)
-            variables[cid] = InferredVariable(
-                var_id=cid,
-                human_name=info.human_name,
-                role="INPUT",
-                sort=info.sort,
-                ordinal_levels=info.ordinal_levels,
-                min_bound=info.min_bound,
-                max_bound=info.max_bound,
-                default_value=int(info.default_value)
-                if info.sort == "int"
-                else info.default_value,
-                source_sentence_ids=sids,
-                source_excerpts=info.source_excerpts[:2],
-            )
-        return variables
-
-    def _synthesize_min_equation(
-        self,
-        target_cid: str,
-        deps: list[str],
-        variables: dict[str, InferredVariable],
-        sids: list[int],
-    ) -> InferredEquation:
-        d1 = deps[0]
-        d2 = deps[1] if len(deps) > 1 else d1
-        e1 = (
-            f"If(v['{d1}'] >= 2, 100.0, If(v['{d1}'] == 1, 50.0, 0.0))"
-            if variables[d1].sort == "int"
-            else f"v['{d1}']"
-        )
-        e2 = (
-            f"If(v['{d2}'] >= 2, 100.0, If(v['{d2}'] == 1, 50.0, 0.0))"
-            if variables[d2].sort == "int"
-            else f"v['{d2}']"
-        )
-        return InferredEquation(
-            equation_id=f"eq_{target_cid}",
-            target_var=target_cid,
-            dependencies=[d1, d2],
-            smt_expression=f"If(({e1}) <= ({e2}), {e1}, {e2})",
-            natural_language_logic=f"Conjunction minimum across {d1}, {d2}",
-            source_sentence_ids=sids,
-        )
-
-    def _synthesize_max_equation(
-        self,
-        target_cid: str,
-        deps: list[str],
-        variables: dict[str, InferredVariable],
-        sids: list[int],
-    ) -> InferredEquation:
-        terms = [
-            f"v['{d}']" if variables[d].sort == "int" else f"If(v['{d}'] > 50.0, 2, 0)"
-            for d in deps
-        ]
-        smt_expr = terms[0]
-        for t in terms[1:]:
-            smt_expr = f"If(({smt_expr}) >= ({t}), {smt_expr}, {t})"
-        return InferredEquation(
-            equation_id=f"eq_{target_cid}",
-            target_var=target_cid,
-            dependencies=deps,
-            smt_expression=smt_expr,
-            natural_language_logic=f"Dominant maximum severity across {', '.join(deps)}",
-            source_sentence_ids=sids,
-        )
-
-    def _mint_latent_parameter(
-        self,
-        target_cid: str,
-        dep_cid: str,
-        dep_var: InferredVariable,
-        target_name: str,
-        sids: list[int],
-    ) -> tuple[str, InferredVariable, str]:
-        p_id = f"param_{target_cid[:10]}_{dep_cid[:12]}"
-        is_low_bad = any(
-            w in dep_cid
-            for w in (
-                "depth",
-                "correlation",
-                "alpha",
-                "return",
-                "momentum",
-                "capacity",
-                "feasibility",
-                "quality",
-            )
-        )
-        ratio = 0.25 if is_low_bad else 0.70
-        def_val = round(
-            (dep_var.max_bound - dep_var.min_bound) * ratio + dep_var.min_bound, 2
-        )
-        param_var = InferredVariable(
-            var_id=p_id,
-            human_name=f"Latent Threshold: {dep_var.human_name} -> {target_name[:22]}",
-            role="PARAMETER",
-            sort="real",
-            min_bound=dep_var.min_bound,
-            max_bound=dep_var.max_bound,
-            default_value=def_val,
-            source_sentence_ids=sids,
-        )
-        op = "<" if is_low_bad else ">"
-        cond_expr = f"(v['{dep_cid}'] {op} v['{p_id}'])"
-        return p_id, param_var, cond_expr
-
-    def _synthesize_relational_equation(
-        self,
-        target_cid: str,
-        deps: list[str],
-        variables: dict[str, InferredVariable],
-        gov_text: str,
-        sids: list[int],
-    ) -> InferredEquation:
-        target_var = variables[target_cid]
-        conds: list[str] = []
-        full_deps = list(deps)
-
-        for d in deps:
-            dv = variables[d]
-            if dv.sort == "real":
-                p_id, param_var, cond_expr = self._mint_latent_parameter(
-                    target_cid, d, dv, target_var.human_name, sids
-                )
-                variables[p_id] = param_var
-                full_deps.append(p_id)
-                conds.append(cond_expr)
-            else:
-                conds.append(f"(v['{d}'] >= 1)")
-
-        gate = "And" if ("requires" in gov_text or "combines" in gov_text) else "Or"
-        joined = f"{gate}({', '.join(conds)})" if len(conds) > 1 else conds[0]
-        any_joined = f"Or({', '.join(conds)})" if len(conds) > 1 else joined
-
-        if target_var.sort == "int":
-            top_tier = int(target_var.max_bound or 2)
-            smt_expr = f"If({joined}, {top_tier}, If({any_joined}, 1, 0))"
-        else:
-            is_health = any(
-                w in target_cid for w in ("capacity", "feasibility", "quality")
-            )
-            smt_expr = (
-                f"If({joined}, 18.0, 90.0)"
-                if is_health
-                else f"If({joined}, 85.0, 12.0)"
-            )
-
-        return InferredEquation(
-            equation_id=f"eq_{target_cid}",
-            target_var=target_cid,
-            dependencies=full_deps,
-            smt_expression=smt_expr,
-            natural_language_logic=f"Inferred {gate} synthesis over {', '.join(deps)}",
-            source_sentence_ids=sids,
-        )
-
-    def _synthesize_single_equation(
-        self,
-        target_cid: str,
-        deps: list[str],
-        variables: dict[str, InferredVariable],
-        gov_sentences: list[RawSentence],
-    ) -> InferredEquation:
-        gov_text = " ".join(s.text for s in gov_sentences).lower()
-        sids = sorted(
-            {s.index for s in gov_sentences}
-            | set(variables[target_cid].source_sentence_ids)
-        )
-
-        if "minimum" in gov_text and variables[target_cid].sort == "real":
-            return self._synthesize_min_equation(target_cid, deps, variables, sids)
-        if "maximum" in gov_text and variables[target_cid].sort == "int":
-            return self._synthesize_max_equation(target_cid, deps, variables, sids)
-        return self._synthesize_relational_equation(
-            target_cid, deps, variables, gov_text, sids
-        )
-
-    def extract_graph(
-        self,
-        sentences: list[RawSentence],
-        log: list[str],
-    ) -> AutonomousPolicyGraph:
-        ling_msg = "[Stage 2 - Linguistic Sentence-Stream Parser] Scanning unordered sentences for concept noun-phrases & causal predicates..."
-        log.append(ling_msg)
-        logger.info(ling_msg)
-
-        concepts, last_subj = self.discover_concepts(sentences)
-        edges, governing = self.build_dependency_links(sentences, concepts, last_subj)
-        variables = self.build_variables(concepts)
-        equations: dict[str, InferredEquation] = {}
-
-        for target_cid, parent_set in edges.items():
-            if not parent_set:
-                continue
-            deps = sorted(parent_set)[:5]
-            eq = self._synthesize_single_equation(
-                target_cid, deps, variables, governing[target_cid]
-            )
-            equations[target_cid] = eq
-
-        logger.info(
-            "Linguistic extraction complete: %d variables, %d equations",
-            len(variables),
-            len(equations),
-        )
-        return AutonomousPolicyGraph(
-            graph_id=f"smt_hypergraph_{str(uuid.uuid4())[:6]}",
-            title="Order-Invariant Sentence-Stream Policy Graph",
             raw_document_text="\n\n".join(s.text for s in sentences),
             sentence_count=len(sentences),
             variables=variables,
@@ -1749,12 +1357,12 @@ class CEGISGraphVerifier:
             v.in_degree = in_deg[vid]
             v.out_degree = out_deg[vid]
             if v.in_degree == 0:
-                v.role = "INPUT"
+                v.role = VariableRole.INPUT
                 v.layer_index = 0
             elif v.out_degree == 0:
-                v.role = "OUTPUT"
+                v.role = VariableRole.OUTPUT
             else:
-                v.role = "INTERMEDIATE"
+                v.role = VariableRole.INTERMEDIATE
 
     @staticmethod
     def topological_sort(
@@ -1869,6 +1477,78 @@ class CEGISGraphVerifier:
         return graph
 
 
+class PolicyGraphCache:
+    """Manages disk-based persistent caching for AutonomousPolicyGraph models keyed by raw text hash."""
+
+    def __init__(
+        self,
+        cache_dir: str | Path = ".cache/autoformalisation",
+        enabled: bool = True,
+    ) -> None:
+        self.cache_dir = Path(cache_dir)
+        self.enabled = enabled
+
+    @staticmethod
+    def compute_hash(raw_text: str) -> str:
+        """Compute SHA-256 hex digest of raw text."""
+        return hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
+
+    def get_cache_path(self, raw_text: str) -> Path:
+        """Resolve filesystem path for a cached graph corresponding to raw_text."""
+        return self.cache_dir / f"{self.compute_hash(raw_text)}.json"
+
+    def get(self, raw_text: str) -> AutonomousPolicyGraph | None:
+        """Retrieve and validate cached AutonomousPolicyGraph if file exists and is valid."""
+        if not self.enabled:
+            return None
+
+        path = self.get_cache_path(raw_text)
+        if not path.is_file():
+            return None
+
+        try:
+            content = path.read_text(encoding="utf-8")
+            graph = AutonomousPolicyGraph.model_validate_json(content)
+            logger.info(
+                "[Cache Hit] Loaded persistent policy graph from %s (hash=%s)",
+                path,
+                self.compute_hash(raw_text)[:12],
+            )
+            return graph
+        except Exception as err:
+            logger.warning(
+                "[Cache Corrupt] Failed to load cached graph from %s: %s (will recompute)",
+                path,
+                err,
+            )
+            return None
+
+    def put(self, raw_text: str, graph: AutonomousPolicyGraph) -> Path | None:
+        """Atomically persist AutonomousPolicyGraph to disk keyed by raw_text hash."""
+        if not self.enabled:
+            return None
+
+        path = self.get_cache_path(raw_text)
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path = path.with_suffix(f".tmp.{uuid.uuid4().hex[:8]}")
+            tmp_path.write_text(graph.model_dump_json(indent=2), encoding="utf-8")
+            tmp_path.replace(path)
+            logger.info(
+                "[Cache Saved] Persisted policy graph to %s (hash=%s)",
+                path,
+                self.compute_hash(raw_text)[:12],
+            )
+            return path
+        except Exception as err:
+            logger.warning(
+                "[Cache Error] Failed to persist graph to %s: %s",
+                path,
+                err,
+            )
+            return None
+
+
 class DeepAutoformalizer:
     """Enterprise autoformalization orchestrator coordinating sentence atomization,
 
@@ -1879,6 +1559,7 @@ class DeepAutoformalizer:
         self,
         config: AutoformalizerConfig | None = None,
         client: AsyncOpenAI | None = None,
+        cache: PolicyGraphCache | None = None,
     ) -> None:
         self.config = config or AutoformalizerConfig.from_env()
         configure_logger(self.config.log_level)
@@ -1893,8 +1574,11 @@ class DeepAutoformalizer:
             self.client = None
 
         self.atomizer = SentenceAtomizer()
-        self.linguistic_extractor = LinguisticGraphExtractor()
         self.verifier = CEGISGraphVerifier()
+        self.cache = cache or PolicyGraphCache(
+            cache_dir=self.config.cache_dir,
+            enabled=self.config.enable_cache,
+        )
 
     @classmethod
     def from_defaults(cls) -> DeepAutoformalizer:
@@ -1911,10 +1595,11 @@ class DeepAutoformalizer:
         cls,
         client: AsyncOpenAI,
         config: AutoformalizerConfig | None = None,
+        cache: PolicyGraphCache | None = None,
     ) -> DeepAutoformalizer:
         """Factory creating autoformalizer with an explicit AsyncOpenAI client."""
         config = config or AutoformalizerConfig.from_env()
-        return cls(config=config, client=client)
+        return cls(config=config, client=client, cache=cache)
 
     def atomize_into_sentences(
         self, raw_text: str, shuffle: bool = False
@@ -1924,9 +1609,17 @@ class DeepAutoformalizer:
         return [(s.index, s.text) for s in sentences]
 
     async def autoformalize_document(
-        self, raw_text: str, shuffle_sentences: bool = False
+        self,
+        raw_text: str,
+        shuffle_sentences: bool = False,
+        use_cache: bool = True,
     ) -> AutonomousPolicyGraph:
-        """Full autonomous autoformalization pipeline."""
+        """Full autonomous autoformalization pipeline with persistent caching."""
+        if use_cache:
+            cached_graph = self.cache.get(raw_text)
+            if cached_graph is not None:
+                return cached_graph
+
         sentences = self.atomizer.atomize(raw_text, shuffle=shuffle_sentences)
         stage1_msg = (
             f"[Stage 1 - Format-Blind Atomizer] Stripped all formatting and segmented "
@@ -1935,25 +1628,11 @@ class DeepAutoformalizer:
         log = [stage1_msg]
         logger.info(stage1_msg)
 
-        if self.client:
-            try:
-                graph = await self._run_llm_pipeline(sentences, log)
-                return self.verifier.verify(graph, log)
-            except Exception as err:
-                msg = (
-                    f"[Fallback Notice] LLM pipeline exception ({str(err)[:75]}); "
-                    f"running Format-Blind Linguistic Dependency Graph Extractor."
-                )
-                log.append(msg)
-                logger.warning(
-                    "LLM pipeline failed; switching to linguistic dependency graph extractor: %s",
-                    err,
-                    exc_info=True,
-                )
-
-        logger.info("Executing linguistic sentence graph extractor")
-        graph = self.linguistic_extractor.extract_graph(sentences, log)
-        return self.verifier.verify(graph, log)
+        graph = await self._run_llm_pipeline(sentences, log)
+        verified_graph = self.verifier.verify(graph, log)
+        if use_cache:
+            self.cache.put(raw_text, verified_graph)
+        return verified_graph
 
     async def _run_llm_pipeline(
         self,

@@ -2,427 +2,402 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <title>PolicyGuard OS | Full-Circle Neuro-Symbolic Policy Governance</title>
+  <title>PolicyGuard Deep SMT OS | Schema-Free Autoformalization & Abductive Solver</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen p-4">
 
-  <!-- Top Header & Full-Circle Lifecycle Ribbon -->
+  <!-- Header -->
   <div class="flex flex-wrap justify-between items-center border-b border-slate-800 pb-3 mb-4 gap-3">
     <div>
       <div class="flex items-center gap-2">
         <span class="h-3 w-3 rounded-full bg-emerald-400 animate-pulse"></span>
-        <h1 class="text-xl font-bold tracking-tight text-emerald-400">PolicyGuard OS</h1>
-        <span class="text-[11px] bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">
-          Bidirectional NL ⇄ AST • Z3 Prover & State Inference • GitOps PRs • &lt;10µs Data Plane
+        <h1 class="text-xl font-bold text-emerald-400">PolicyGuard Deep SMT OS</h1>
+        <span class="text-xs font-mono bg-slate-900 border border-slate-700 px-2 py-0.5 rounded text-slate-300">
+          Zero-Schema Ontology Inference • 5-Layer SMT-LIB 2.0 • Abductive Input Solver
         </span>
       </div>
-      <p id="header-meta" class="text-xs text-slate-400 mt-0.5">Initializing workspace...</p>
+      <p id="doc-title" class="text-xs text-slate-400 mt-1">Autoformalizing unstructured policy...</p>
     </div>
-
-    <div class="flex items-center gap-3 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-      <div>
-        <div class="text-[10px] text-slate-400">Hot-Path P50 / P99</div>
-        <div id="kpi-lat" class="font-mono font-bold text-emerald-400">-- µs</div>
-      </div>
-      <div class="border-l border-slate-800 pl-3">
-        <div class="text-[10px] text-slate-400">Recall / FP (Δ Candidate)</div>
-        <div id="kpi-acc" class="font-mono font-bold text-sky-400">--</div>
-      </div>
-      <div class="border-l border-slate-800 pl-3">
-        <div class="text-[10px] text-slate-400">Z3 Proof State</div>
-        <div id="kpi-z3" class="font-mono font-bold text-emerald-400">VERIFIED</div>
-      </div>
-      <a href="/api/export/html" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-700/50 px-2.5 py-1 rounded font-mono text-[11px]">↗ Standalone HTML Graph</a>
-      <select id="domain-select" onchange="switchDomain(this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 font-mono text-xs"></select>
+    <div class="flex items-center gap-3 text-xs font-mono">
+      <div id="proof-badge" class="bg-emerald-950 text-emerald-300 border border-emerald-700 px-3 py-1.5 rounded font-bold">Z3: VERIFYING</div>
+      <a href="/api/smtlib2" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-700/50 px-3 py-1.5 rounded">↗ View Raw SMT-LIB 2.0</a>
     </div>
   </div>
 
-  <!-- Main 12-Column Single-Pane-of-Glass Grid -->
   <div class="grid grid-cols-12 gap-4">
-
-    <!-- LEFT COLUMN (4 Cols): Multi-Policy Natural Language Studio & Bidirectional Parameter Config -->
+    <!-- COL 1-4: Unstructured Policy Input, Inferred Ontology & Latent Parameters -->
     <div class="col-span-4 space-y-4">
-      <!-- Natural Language Policy Iteration Box -->
       <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
         <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400">1. Continuous Natural Language Policy Studio</h2>
-          <span id="edit-mode-badge" class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">Mode: New Policy</span>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400">1. Unstructured Policy Autoformalizer</h2>
+          <span id="ontology-counts" class="text-[10px] font-mono text-slate-400"></span>
         </div>
-        <input id="nl-policy-name" type="text" placeholder="Policy Name (e.g., High-Volatility Liquidity Guard)" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs mb-2 text-slate-100">
-        <input id="nl-policy-id" type="hidden" value="">
-        <textarea id="nl-policy-input" rows="2" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none" placeholder="Write or edit policy in plain English (e.g., Intercept any order where notional_usd exceeds 180000 and spread_bps is greater than 12.0)..."></textarea>
-        <div class="flex gap-2 mt-2">
-          <button onclick="submitNLPolicy()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-1.5 rounded text-xs transition">Compile NL ➔ AST + Z3 Auto-Heal</button>
-          <button onclick="clearNLEditor()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded text-xs">Reset</button>
+        <textarea id="raw-doc-input" rows="5" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-[11px] font-mono text-slate-300"></textarea>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <button onclick="reingestDocument(false)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-1.5 rounded text-xs">
+            Infer Ontology & SMT Graph
+          </button>
+          <button onclick="reingestDocument(true)" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold py-1.5 rounded text-xs">
+            🔀 Shuffle Sentences & Re-Infer
+          </button>
         </div>
+        <div id="compiler-log" class="mt-2 p-2 bg-slate-950 rounded border border-slate-800 font-mono text-[10px] text-sky-400 space-y-1 max-h-24 overflow-y-auto"></div>
       </div>
 
-      <!-- Active Policies List (Click to Edit Prose or Inspect Provenance) -->
-      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">2. Active Policies (Click to Edit Prose / Highlight AST)</h2>
-        <div id="policies-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
-      </div>
-
-      <!-- Bidirectional Parameter Configurator -->
+      <!-- Inferred Latent Threshold Parameters -->
       <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
         <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-amber-400">3. Bidirectional Parameter Config</h2>
-          <button onclick="applyParameterEdits()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-2.5 py-1 rounded text-[11px]">Sync Params ➔ Prose & Z3</button>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-amber-400">2. Inferred Latent Parameters (Qualitative ➔ Math)</h2>
+          <button onclick="saveParams()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded text-[11px]">Re-Bind Z3 Solver</button>
         </div>
-        <div id="params-list" class="space-y-2 max-h-52 overflow-y-auto pr-1"></div>
+        <div id="params-container" class="space-y-1.5 max-h-72 overflow-y-auto pr-1"></div>
       </div>
     </div>
 
-    <!-- CENTER COLUMN (4 Cols): Provenance Logic Graph, Z3 State Inference & Governance PR Queue -->
+    <!-- COL 5-8: Abductive "Solve for Inputs" Engine & 5-Layer Topological DAG -->
     <div class="col-span-4 space-y-4">
-      <!-- Embedded Interactive Provenance Logic Graph -->
       <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
         <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-sky-400">4. Interactive Provenance Logic Graph</h2>
-          <span class="text-[10px] text-slate-400 font-mono">Click node to trace source clause</span>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-purple-400">3. Abductive SMT Solver ("Solve for Inputs")</h2>
+          <button onclick="solveForInputs()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1 rounded text-xs">⚡ Z3 Solve for Inputs</button>
         </div>
-        <div id="provenance-graph" class="space-y-1.5 max-h-48 overflow-y-auto bg-slate-950 p-2.5 rounded border border-slate-800 font-mono text-[11px]"></div>
-        <div id="z3-proof-banner" class="mt-2 p-2 rounded bg-slate-950 border border-slate-800 text-xs font-mono"></div>
-      </div>
-
-      <!-- Symbolic State Inference Explorer ("Inferring Input States") -->
-      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-purple-400">5. Z3 Symbolic State Inference ("What-If")</h2>
-          <button onclick="runStateInference()" class="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-2.5 py-1 rounded text-[11px]">Infer Boundaries via Z3</button>
-        </div>
-        <p class="text-[11px] text-slate-400 mb-2">Lock any known input fields below; leave others blank for Z3 to infer exact INTERCEPT vs. PASS state completions:</p>
-        <div id="inference-inputs" class="grid grid-cols-2 gap-1.5 mb-2"></div>
-        <div id="inference-output" class="bg-slate-950 border border-slate-800 rounded p-2 font-mono text-[11px] text-slate-300 max-h-36 overflow-y-auto">
-          Set partial values above and click "Infer Boundaries via Z3".
+        <p class="text-[11px] text-slate-400 mb-2">Set target state constraints across output directives or regimes. Select an enum state from the dropdown or enter numeric bounds:</p>
+        <div id="target-constraints-list" class="space-y-1.5 max-h-56 overflow-y-auto mb-2 pr-1"></div>
+        <div id="solved-inputs-box" class="bg-slate-950 border border-slate-800 rounded p-2.5 font-mono text-[11px] max-h-52 overflow-y-auto text-slate-300">
+          Select target directive states above and click "⚡ Z3 Solve for Inputs".
         </div>
       </div>
 
-      <!-- Governance Update Requests (PR Queue & Metric Deltas) -->
+      <!-- Inferred Multi-Layer Causal Equations (Topological Order) -->
       <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
         <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400">6. Update Requests & GitOps PR Gate</h2>
-          <button onclick="stageUpdateRequest()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-2.5 py-1 rounded text-[11px]">+ Stage Update Request (PR)</button>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-sky-400">4. Inferred Multi-Layer Symbolic DAG</h2>
+          <button onclick="runCounterfactual()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-2.5 py-1 rounded text-[10px]">Find Minimal Counterfactual to CONTINUE_TRADING</button>
         </div>
-        <div id="pr-queue" class="space-y-2 max-h-44 overflow-y-auto pr-1"></div>
+        <div id="dag-container" class="space-y-1.5 max-h-60 overflow-y-auto font-mono text-[11px] pr-1"></div>
       </div>
     </div>
 
-    <!-- RIGHT COLUMN (4 Cols): Live Data Plane Stream & Red-Team Full-Circle Auto-Patch -->
+    <!-- COL 9-12: Live Master Directives, Reachability Proofs & Telemetry Stream -->
     <div class="col-span-4 space-y-4">
-      <!-- Red-Team & Breach Occurrences (Full-Circle Feedback Loop) -->
       <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-rose-400">7. Red-Team Arena & Breach Auto-Patch</h2>
-          <button onclick="injectRedTeamAttack()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-2.5 py-1 rounded text-[11px] font-mono">⚡ Z3 Synthesize & Inject Attack</button>
-        </div>
-        <div id="occurrences-list" class="space-y-2 max-h-52 overflow-y-auto pr-1"></div>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">5. Live Master Execution Directives (Layer 5 Outputs)</h2>
+        <div id="live-directives" class="space-y-2"></div>
       </div>
 
-      <!-- Wire-Speed Data Plane Live Stream -->
-      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col h-[50vh]">
+      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">6. Z3 Output State Reachability Proofs</h2>
+        <div id="reachability-list" class="space-y-1 max-h-40 overflow-y-auto font-mono text-[11px]"></div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col h-72">
         <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">8. Live Data Plane Stream (Zero-LLM)</h2>
-          <div class="flex items-center gap-2 text-xs">
-            <span class="font-mono"><strong id="rate-lbl">6</strong> ev/s</span>
-            <input type="range" min="0" max="80" value="6" oninput="changeRate(this.value)" class="w-20 accent-emerald-500">
-          </div>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">7. Live 5-Layer DAG Stream</h2>
+          <span id="stream-latency" class="font-mono text-xs text-emerald-400">-- µs</span>
         </div>
-        <div id="live-stream" class="flex-1 overflow-y-auto space-y-1.5 font-mono text-[11px] pr-1"></div>
+        <div id="stream-feed" class="flex-1 overflow-y-auto space-y-1.5 font-mono text-[10px] pr-1"></div>
       </div>
     </div>
-
   </div>
 
-  <script>
-    let workspace = null;
-    let inferenceFieldsInitialized = false;
+  <!-- Section 8: Interactive Primary Telemetry Simulator & Input Tester -->
+  <div class="mt-4 bg-slate-900 border border-slate-800 rounded-lg p-3.5">
+    <div class="flex justify-between items-center mb-2">
+      <div class="flex items-center gap-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-sky-400">8. Live Primary Telemetry Simulator & Manual Input Tester</h2>
+        <span class="text-[10px] text-slate-400 font-mono">Test arbitrary input combinations using typed enums and continuous bounds</span>
+      </div>
+      <button onclick="injectManualTelemetry()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1 rounded text-xs">
+        ⚡ Inject Telemetry & Evaluate DAG
+      </button>
+    </div>
+    <div id="telemetry-inputs-grid" class="grid grid-cols-4 gap-2.5 max-h-60 overflow-y-auto pr-1"></div>
+  </div>
 
-    async function loadWorkspace(rebuildInference = false) {
-      const res = await fetch('/api/workspace');
-      workspace = await res.json();
-      renderWorkspace(rebuildInference);
+  <!-- Generated SDK Module Import from packages/policyguard-client -->
+  <script type="module">
+    import {
+      PolicyGuardClient,
+      VariableRole,
+      VariableSort,
+      ConstraintOperator,
+      AbductiveSolveStatus,
+      CounterfactualStatus,
+      VerificationStatus,
+    } from '/packages/policyguard-client/dist/index.js';
+
+    const client = new PolicyGuardClient();
+    let appState = null;
+
+    function renderTypedInputControl(id, v, currentValue = '') {
+      if (v.ordinal_levels && Object.keys(v.ordinal_levels).length > 0) {
+        // Ordinal / Categorical Enum Dropdown
+        const options = Object.entries(v.ordinal_levels).map(([idx, name]) => {
+          const selected = String(currentValue) === String(name) || String(currentValue) === String(idx) ? 'selected' : '';
+          return `<option value="${name}" ${selected}>${name} (${idx})</option>`;
+        }).join('');
+        return `
+          <select id="${id}" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 font-mono text-[10px] text-amber-300 w-32 focus:border-emerald-500 focus:outline-none">
+            <option value="">-- any --</option>
+            ${options}
+          </select>
+        `;
+      } else if (v.sort === VariableSort.BOOL) {
+        // Boolean Enum Dropdown
+        const isTrue = currentValue === true || currentValue === 1 || currentValue === 'true' || currentValue === '1';
+        const isFalse = currentValue === false || currentValue === 0 || currentValue === 'false' || currentValue === '0';
+        return `
+          <select id="${id}" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 font-mono text-[10px] text-emerald-300 w-24 focus:border-emerald-500 focus:outline-none">
+            <option value="">-- any --</option>
+            <option value="true" ${isTrue ? 'selected' : ''}>True (1)</option>
+            <option value="false" ${isFalse ? 'selected' : ''}>False (0)</option>
+          </select>
+        `;
+      } else {
+        // Continuous Real or Integer Bound-Aware Input
+        const step = v.sort === VariableSort.INT ? '1' : 'any';
+        return `
+          <input id="${id}" type="number" step="${step}" min="${v.min_bound}" max="${v.max_bound}" value="${currentValue}" placeholder="[${v.min_bound}..${v.max_bound}]" class="w-24 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 font-mono text-[10px] text-purple-300 text-right focus:border-emerald-500 focus:outline-none">
+        `;
+      }
     }
 
-    function renderWorkspace(rebuildInference = false) {
-      const wb = workspace.working_bundle;
-      const mc = workspace.metrics_comparison;
-      const z3 = workspace.z3_verification;
+    async function loadState() {
+      appState = await client.default.getSystemStateApiStateGet();
+      renderState();
+    }
 
-      document.getElementById('header-meta').innerText = `${wb.title} | Role: ${workspace.service_role} | Secrets: ${workspace.secrets_manager}`;
-      document.getElementById('domain-select').innerHTML = workspace.available_domains.map(d =>
-        `<option value="${d}" ${d === wb.domain_key ? 'selected' : ''}>Domain: ${d.toUpperCase()}</option>`
-      ).join('');
+    function renderState() {
+      const g = appState.graph;
+      const ver = appState.verification;
+      document.getElementById('doc-title').innerText = `${g.title} (${g.graph_id})`;
+      document.getElementById('raw-doc-input').value = g.raw_document_text;
+      document.getElementById('compiler-log').innerHTML = g.cegis_compiler_log.map(l => `<div>• ${l}</div>`).join('');
 
-      // KPIs
-      document.getElementById('kpi-lat').innerText = `${mc.candidate.p50_latency_us}µs / ${mc.candidate.p99_latency_us}µs`;
-      const rDelta = mc.deltas.fraud_recall_pct_delta;
-      const fpDelta = mc.deltas.false_positive_pct_delta;
-      document.getElementById('kpi-acc').innerText = `${mc.candidate.simulated_fraud_recall_pct}% (${rDelta>=0?'+':''}${rDelta}%) / FP ${mc.candidate.false_positive_rate_pct}% (${fpDelta>=0?'+':''}${fpDelta}%)`;
-      document.getElementById('kpi-z3').innerText = z3.overall_status;
-      document.getElementById('kpi-z3').className = `font-mono font-bold ${z3.overall_status === 'VERIFIED' ? 'text-emerald-400' : 'text-rose-400'}`;
+      const vars = Object.values(g.variables);
+      const inCnt = vars.filter(v => v.role === VariableRole.INPUT).length;
+      const pCnt = vars.filter(v => v.role === VariableRole.PARAMETER).length;
+      const intCnt = vars.filter(v => v.role === VariableRole.INTERMEDIATE).length;
+      const outCnt = vars.filter(v => v.role === VariableRole.OUTPUT).length;
+      document.getElementById('ontology-counts').innerText = `${inCnt} In | ${pCnt} Params | ${intCnt} Inter | ${outCnt} Out`;
 
-      // 1 & 2. Render Active Policies
-      document.getElementById('policies-list').innerHTML = wb.policies.map(p => `
-        <div data-pid="${p.policy_id}" onclick="selectPolicyForEdit('${p.policy_id}')" class="pol-card cursor-pointer p-2.5 bg-slate-950 border ${p.enabled ? 'border-slate-800' : 'border-slate-800 opacity-50'} rounded hover:border-emerald-500/60 transition">
-          <div class="flex justify-between items-center">
-            <span class="font-mono text-xs font-bold text-emerald-400">${p.policy_id}: ${p.name}</span>
-            <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
-              <button onclick="togglePolicy('${p.policy_id}')" class="text-[10px] px-1.5 py-0.5 rounded ${p.enabled ? 'bg-emerald-950 text-emerald-300' : 'bg-slate-800 text-slate-400'}">${p.enabled ? 'ON' : 'OFF'}</button>
-              <button onclick="deletePolicy('${p.policy_id}')" class="text-[10px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-300">✕</button>
+      const badge = document.getElementById('proof-badge');
+      badge.innerText = `Z3: ${ver.status} (${ver.reachability_proofs.length} States Proven)`;
+
+      // 1. Render Latent Parameters (Typed per sort/enum)
+      const params = vars.filter(v => v.role === VariableRole.PARAMETER);
+      document.getElementById('params-container').innerHTML = params.map(p => `
+        <div class="bg-slate-950 p-2 rounded border border-slate-800 flex justify-between items-center gap-2">
+          <div class="truncate">
+            <div class="font-mono text-[11px] font-bold text-amber-300 truncate">${p.human_name}</div>
+            <div class="font-mono text-[10px] text-slate-500">${p.var_id} <span class="text-slate-600">(${p.sort.toUpperCase()})</span></div>
+          </div>
+          ${renderTypedInputControl(`param-${p.var_id}`, p, p.default_value)}
+        </div>
+      `).join('');
+
+      // 2. Render Target Constraints for "Solve for Inputs"
+      const targets = vars.filter(v => v.role === VariableRole.OUTPUT || v.role === VariableRole.INTERMEDIATE).sort((a,b) => b.layer_index - a.layer_index);
+      document.getElementById('target-constraints-list').innerHTML = targets.map(t => {
+        const isOrdinal = t.ordinal_levels && Object.keys(t.ordinal_levels).length > 0;
+        const sortBadge = isOrdinal ? 'ENUM' : t.sort.toUpperCase();
+        return `
+          <div class="bg-slate-950 p-1.5 rounded border border-slate-800 flex justify-between items-center text-xs">
+            <span class="font-mono text-[11px] ${t.role === VariableRole.OUTPUT ? 'text-purple-300 font-bold' : 'text-slate-300'} truncate max-w-[50%]">
+              [L${t.layer_index}] ${t.human_name} <span class="text-[9px] text-slate-500">(${sortBadge})</span>
+            </span>
+            <div class="flex items-center gap-1">
+              <select id="op-${t.var_id}" class="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 font-mono text-[10px]">
+                <option value="==">==</option>
+                <option value="!=">!=</option>
+                <option value=">=">&gt;=</option>
+                <option value="<=">&lt;=</option>
+                <option value=">">&gt;</option>
+                <option value="<">&lt;</option>
+              </select>
+              ${renderTypedInputControl(`val-${t.var_id}`, t, '')}
             </div>
           </div>
-          <div class="text-xs text-slate-200 mt-1">${p.natural_language_text}</div>
-          ${p.cegis_log.length ? `<div class="text-[10px] font-mono text-sky-400 mt-1">🛡️ ${p.cegis_log[p.cegis_log.length - 1]}</div>` : ''}
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
-      // 3. Render Parameters
-      document.getElementById('params-list').innerHTML = Object.values(wb.parameters).map(spec => `
-        <div data-pid="${spec.policy_id}" class="param-card bg-slate-950 p-2 rounded border border-slate-800 flex justify-between items-center">
-          <div>
-            <div class="font-mono text-[11px] font-bold text-amber-300">${spec.key} <span class="text-slate-500">(${spec.policy_id})</span></div>
-            <div class="text-[10px] text-slate-400">${spec.description}</div>
+      // 3. Render Topological DAG Equations
+      document.getElementById('dag-container').innerHTML = g.topological_order.map(tid => {
+        const eq = g.equations[tid];
+        const v = g.variables[tid];
+        return `<div class="p-2 bg-slate-950 border border-slate-800 rounded">
+          <div class="flex justify-between text-sky-400 font-bold">
+            <span>[Layer ${v.layer_index}] ${v.human_name}</span>
+            <span class="text-[10px] text-slate-500">${v.role} • ${v.sort.toUpperCase()}</span>
           </div>
-          <input id="p-in-${spec.key}" type="text" value="${spec.value}" class="w-24 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-right text-emerald-300">
-        </div>
-      `).join('');
-
-      // 4. Render Embedded Provenance Graph
-      document.getElementById('provenance-graph').innerHTML = workspace.provenance_graph.nodes.map(n => {
-        const indent = n.type === 'POLICY_ROOT' ? 'ml-0 text-rose-300 font-bold' : (n.type === 'LOGICAL' ? 'ml-4 text-sky-300' : 'ml-8 text-emerald-300');
-        return `<div data-pid="${n.policy_id}" onclick="highlightProvenance('${n.policy_id}')" class="ast-node cursor-pointer p-1.5 rounded bg-slate-900 border border-slate-800 hover:border-amber-400 ${indent} flex justify-between">
-          <span>${n.label}</span>
-          <span class="text-[10px] text-amber-400">↗ ${n.policy_id}</span>
+          <div class="text-slate-400 text-[10px] mt-0.5">Deps: ${eq.dependencies.join(', ')}</div>
+          <div class="text-emerald-300 text-[10px] mt-0.5 truncate">SMT: ${eq.smt_expression}</div>
         </div>`;
       }).join('');
 
-      const z3Banner = document.getElementById('z3-proof-banner');
-      if (z3.issues.length === 0) {
-        z3Banner.innerHTML = `<span class="text-emerald-400 font-bold">✅ Z3 Formal Proof Passed:</span> 0 Contradictions, 0 Dead Rules, Smurfing Immune.`;
-      } else {
-        z3Banner.innerHTML = z3.issues.map(i => `<div class="text-rose-400">❌ [${i.type}] ${i.detail}</div>`).join('');
-      }
+      // 4. Render Reachability Proofs
+      document.getElementById('reachability-list').innerHTML = ver.reachability_proofs.map(r => `
+        <div class="flex justify-between p-1.5 bg-slate-950 rounded border border-slate-800">
+          <span class="text-slate-300 truncate">${r.human_name}: <strong>${r.target_state}</strong></span>
+          <span class="${r.reachable ? 'text-emerald-400' : 'text-rose-400'} font-bold">${r.reachable ? 'SAT (Reachable)' : 'UNSAT (Dead)'}</span>
+        </div>
+      `).join('');
 
-      // 5. Render Symbolic State Inference Inputs
-      if (rebuildInference || !inferenceFieldsInitialized) {
-        inferenceFieldsInitialized = true;
-        document.getElementById('inference-inputs').innerHTML = Object.entries(wb.fields).map(([f, ftype]) => `
-          <div class="bg-slate-950 p-1.5 rounded border border-slate-800 flex justify-between items-center">
-            <span class="font-mono text-[10px] text-slate-300 truncate pr-1">${f}</span>
-            <input id="inf-${f}" placeholder="Any (${ftype})" class="w-20 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] font-mono text-purple-300">
+      // 5. Render Primary Telemetry Simulator Inputs
+      const primaryInputs = vars.filter(v => v.role === VariableRole.INPUT);
+      document.getElementById('telemetry-inputs-grid').innerHTML = primaryInputs.map(inp => `
+        <div class="p-2 bg-slate-950 border border-slate-800 rounded flex justify-between items-center text-xs">
+          <div class="truncate max-w-[60%]">
+            <div class="font-mono text-[10px] font-bold text-slate-200 truncate">${inp.human_name}</div>
+            <div class="font-mono text-[9px] text-slate-500">${inp.var_id} (${inp.sort})</div>
           </div>
-        `).join('');
-      }
-
-      // 6. Render Update Requests (PR Queue)
-      const prDiv = document.getElementById('pr-queue');
-      if (workspace.update_requests.length === 0) {
-        prDiv.innerHTML = `<div class="text-xs text-slate-500 font-mono p-2">No staged Update Requests yet. Edit prose or parameters and click "+ Stage Update Request (PR)".</div>`;
-      } else {
-        prDiv.innerHTML = workspace.update_requests.map(ur => `
-          <div class="p-2.5 bg-slate-950 border border-slate-800 rounded text-xs space-y-1.5">
-            <div class="flex justify-between items-center">
-              <span class="font-mono font-bold text-emerald-400">${ur.request_id} • ${ur.summary}</span>
-              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${ur.status === 'APPROVED_MERGED' ? 'bg-emerald-950 text-emerald-300' : 'bg-amber-950 text-amber-300'}">${ur.status}</span>
-            </div>
-            <div class="text-[11px] text-slate-300 font-mono">
-              Δ Blast: ${ur.metrics_comparison.deltas.blast_radius_pct_delta}% | Δ Recall: ${ur.metrics_comparison.deltas.fraud_recall_pct_delta}% | Z3: ${ur.z3_report.overall_status}
-            </div>
-            ${ur.nl_diff.map(d => `<div class="text-[10px] text-slate-400 bg-slate-900 p-1.5 rounded"><strong>${d.policy_id}:</strong> "${d.candidate_prose}"</div>`).join('')}
-            ${ur.status === 'PENDING_REVIEW' ? `<button onclick="approvePR('${ur.request_id}')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 rounded text-[11px]">Approve & Hot-Reload Cluster</button>` : ''}
-          </div>
-        `).join('');
-      }
-
-      // 7. Render Red-Team Occurrences & Full-Circle Auto-Patch
-      renderOccurrences(workspace.redteam_occurrences);
-    }
-
-    function renderOccurrences(list) {
-      const container = document.getElementById('occurrences-list');
-      if (!list || list.length === 0) {
-        container.innerHTML = `<div class="text-xs text-slate-500 font-mono p-2">Click "⚡ Z3 Synthesize & Inject Attack" to test boundary defenses or wait for live stream anomalies.</div>`;
-        return;
-      }
-      container.innerHTML = list.map(o => `
-        <div class="p-2 rounded border ${o.breach_detected ? 'bg-rose-950/30 border-rose-700' : 'bg-slate-950 border-slate-800'} text-xs">
-          <div class="flex justify-between font-mono text-[11px]">
-            <span class="font-bold ${o.breach_detected ? 'text-rose-400' : 'text-emerald-400'}">${o.breach_detected ? '⚠️ BREACH ESCAPED (PASS)' : '🛡️ INTERCEPTED (' + o.triggered_policy + ')'}</span>
-            <span class="text-slate-500">${o.source} • ${o.timestamp}</span>
-          </div>
-          <div class="font-mono text-[10px] text-slate-400 truncate mt-1">${JSON.stringify(o.event_payload)}</div>
-          ${o.suggested_nl_patch ? `
-            <div class="mt-1.5 flex justify-between items-center bg-slate-900 p-1.5 rounded border border-rose-800/60">
-              <span class="text-[10px] text-amber-300 truncate mr-2">Suggested NL Patch: "${o.suggested_nl_patch}"</span>
-              <button onclick="loadPatchIntoStudio('${o.suggested_nl_patch.replace(/'/g, "\\'")}')" class="shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded text-[10px]">↺ Load Patch in Studio</button>
-            </div>
-          ` : ''}
+          ${renderTypedInputControl(`sim-${inp.var_id}`, inp, inp.default_value)}
         </div>
       `).join('');
     }
 
-    function selectPolicyForEdit(pid) {
-      const pol = workspace.working_bundle.policies.find(p => p.policy_id === pid);
-      if (!pol) return;
-      document.getElementById('nl-policy-id').value = pol.policy_id;
-      document.getElementById('nl-policy-name').value = pol.name;
-      document.getElementById('nl-policy-input').value = pol.natural_language_text;
-      document.getElementById('edit-mode-badge').innerText = `Editing: ${pol.policy_id}`;
-      document.getElementById('edit-mode-badge').className = 'text-[10px] font-mono bg-amber-950 text-amber-300 border border-amber-700 px-2 py-0.5 rounded';
-      highlightProvenance(pid);
-    }
-
-    function clearNLEditor() {
-      document.getElementById('nl-policy-id').value = '';
-      document.getElementById('nl-policy-name').value = '';
-      document.getElementById('nl-policy-input').value = '';
-      document.getElementById('edit-mode-badge').innerText = 'Mode: New Policy';
-      document.getElementById('edit-mode-badge').className = 'text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300';
-    }
-
-    function loadPatchIntoStudio(patchText) {
-      clearNLEditor();
-      document.getElementById('nl-policy-name').value = 'Auto-Synthesized Breach Guard';
-      document.getElementById('nl-policy-input').value = patchText;
-      document.getElementById('nl-policy-input').focus();
-    }
-
-    function highlightProvenance(pid) {
-      document.querySelectorAll('[data-pid]').forEach(el => {
-        el.classList.toggle('ring-2', el.dataset.pid === pid);
-        el.classList.toggle('ring-amber-400', el.dataset.pid === pid);
+    async function reingestDocument(shuffle = false) {
+      const raw_text = document.getElementById('raw-doc-input').value;
+      appState = await client.default.ingestUnstructuredDocumentApiIngestDocumentPost({
+        raw_text,
+        shuffle_sentences: shuffle,
       });
+      renderState();
     }
 
-    async function submitNLPolicy() {
-      const text = document.getElementById('nl-policy-input').value;
-      if (!text) return;
-      const pid = document.getElementById('nl-policy-id').value || null;
-      const pname = document.getElementById('nl-policy-name').value || null;
-      const res = await fetch('/api/policy/nl-iterate', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({natural_language_text: text, policy_id: pid, policy_name: pname, auto_heal_smurfing: true})
-      });
-      workspace = await res.json();
-      clearNLEditor();
-      renderWorkspace();
-    }
-
-    async function togglePolicy(pid) {
-      const res = await fetch(`/api/policy/toggle/${pid}`, {method: 'POST'});
-      workspace = await res.json();
-      renderWorkspace();
-    }
-
-    async function deletePolicy(pid) {
-      const res = await fetch(`/api/policy/${pid}`, {method: 'DELETE'});
-      workspace = await res.json();
-      renderWorkspace();
-    }
-
-    async function applyParameterEdits() {
+    async function saveParams() {
       const overrides = {};
-      Object.values(workspace.working_bundle.parameters).forEach(spec => {
-        const raw = document.getElementById(`p-in-${spec.key}`).value;
-        if (spec.param_type === 'real') overrides[spec.key] = parseFloat(raw);
-        else if (spec.param_type === 'int') overrides[spec.key] = parseInt(raw, 10);
-        else if (spec.param_type === 'bool') overrides[spec.key] = (raw.toLowerCase() === 'true');
-        else overrides[spec.key] = raw;
+      Object.values(appState.graph.variables).filter(v => v.role === VariableRole.PARAMETER).forEach(p => {
+        const el = document.getElementById(`param-${p.var_id}`);
+        if (!el) return;
+        const raw = el.value.trim();
+        if (raw !== '') {
+          overrides[p.var_id] = parseFloat(raw);
+        }
       });
-      const res = await fetch('/api/config/update-params', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({parameter_overrides: overrides})
+      appState = await client.default.updateParametersApiParamsUpdatePost({
+        param_overrides: overrides,
       });
-      workspace = await res.json();
-      renderWorkspace();
+      renderState();
     }
 
-    async function runStateInference() {
-      const partial = {};
-      Object.keys(workspace.working_bundle.fields).forEach(f => {
-        const val = document.getElementById(`inf-${f}`).value.trim();
-        if (val !== '') partial[f] = val;
+    async function solveForInputs() {
+      const target_constraints = {};
+      Object.values(appState.graph.variables).filter(v => v.role === VariableRole.OUTPUT || v.role === VariableRole.INTERMEDIATE).forEach(t => {
+        const el = document.getElementById(`val-${t.var_id}`);
+        if (!el) return;
+        const val = el.value.trim();
+        const op = document.getElementById(`op-${t.var_id}`).value;
+        if (val !== '') {
+          // Supports string enum names (e.g. "HALT") as well as numeric values
+          target_constraints[t.var_id] = { op, val: val };
+        }
       });
-      const res = await fetch('/api/z3/infer-state', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({partial_state: partial})
-      });
-      const data = await res.json();
-      document.getElementById('inference-output').innerHTML = `
-        <div class="text-rose-400 font-bold">Inferred INTERCEPT State Completion:</div>
-        <div class="truncate mb-1">${data.inferred_intercept_witness ? JSON.stringify(data.inferred_intercept_witness) : 'UNSAT (Cannot INTERCEPT under fixed inputs)'}</div>
-        <div class="text-emerald-400 font-bold">Inferred Safe PASS State Completion:</div>
-        <div class="truncate mb-1">${data.inferred_safe_pass_witness ? JSON.stringify(data.inferred_safe_pass_witness) : 'UNSAT (Always INTERCEPTED under fixed inputs)'}</div>
-        <div class="text-sky-400 font-bold">Policy Reachability:</div>
-        ${data.policy_reachability.map(r => `<div>• ${r.policy_id}: ${r.can_trigger_under_partial_state ? '✅ REACHABLE' : '🔒 BLOCKED BY FIXED INPUTS'}</div>`).join('')}
-      `;
-    }
-
-    async function stageUpdateRequest() {
-      const summary = prompt("Enter Change Request / PR Summary:", "Refine policy thresholds & Z3 verified guardrails");
-      if (!summary) return;
-      const res = await fetch('/api/update-requests/create', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({author: "Risk_Officer_Edin", summary})
-      });
-      workspace = await res.json();
-      renderWorkspace();
-    }
-
-    async function approvePR(reqId) {
-      const res = await fetch(`/api/update-requests/${reqId}/approve`, {method: 'POST'});
-      if (!res.ok) {
-        alert("Cannot approve Update Request: Z3 Formal Verification failed!");
-        return;
+      if (Object.keys(target_constraints).length === 0) {
+        // Default target: Solve for Master Operating Directive == 2 (EMERGENCY_HALT)
+        const firstOut = Object.values(appState.graph.variables).find(v => v.role === VariableRole.OUTPUT && v.sort === VariableSort.INT);
+        if (firstOut) target_constraints[firstOut.var_id] = { op: "==", val: firstOut.max_bound || 2 };
       }
-      workspace = await res.json();
-      renderWorkspace();
+      const data = await client.default.solveForInputsEndpointApiSmtSolveInputsPost({
+        target_constraints,
+      });
+      const box = document.getElementById('solved-inputs-box');
+      if (data.status === AbductiveSolveStatus.SATISFIABLE && data.solved_state) {
+        const inputs = Object.entries(data.solved_state.INPUT);
+        const outputs = Object.entries(data.solved_state.OUTPUT);
+        box.innerHTML = `
+          <div class="text-emerald-400 font-bold mb-1">✅ Z3 Solved ${inputs.length} Primary Telemetry Inputs for Targets (${data.applied_targets.join(', ')}):</div>
+          <div class="text-purple-300 mb-1.5">Resulting Outputs: ${outputs.map(([k,v]) => `${v.human_name}=${v.formatted}`).join(' | ')}</div>
+          <div class="space-y-0.5 border-t border-slate-800 pt-1">
+            ${inputs.map(([k, v]) => `<div>• <span class="text-slate-400">${v.human_name}:</span> <strong class="text-amber-300">${v.formatted}</strong></div>`).join('')}
+          </div>
+        `;
+      } else {
+        box.innerHTML = `<div class="text-rose-400 font-bold">❌ ${data.message || 'Constraints are unsatisfiable.'}</div>`;
+      }
     }
 
-    async function injectRedTeamAttack() {
-      const res = await fetch('/api/redteam/inject', {method: 'POST'});
-      workspace = await res.json();
-      renderWorkspace();
+    async function injectManualTelemetry() {
+      const telemetry = {};
+      Object.values(appState.graph.variables).filter(v => v.role === VariableRole.INPUT).forEach(inp => {
+        const el = document.getElementById(`sim-${inp.var_id}`);
+        if (!el) return;
+        const raw = el.value.trim();
+        if (raw !== '') {
+          if (inp.sort === VariableSort.BOOL) {
+            telemetry[inp.var_id] = raw === 'true' || raw === '1';
+          } else {
+            telemetry[inp.var_id] = parseFloat(raw);
+          }
+        }
+      });
+      const data = await client.default.evaluateTelemetryEndpointApiTelemetryEvaluatePost({
+        telemetry,
+      });
+      document.getElementById('stream-latency').innerText = `${data.latency_us} µs`;
+      console.log("Manual telemetry evaluated successfully:", data);
     }
 
-    async function switchDomain(d) {
-      const res = await fetch(`/api/domain/${d}`, {method: 'POST'});
-      workspace = await res.json();
-      renderWorkspace(true);
+    async function runCounterfactual() {
+      const masterOut = Object.values(appState.graph.variables).find(v => v.var_id.includes('35') || (v.role === VariableRole.OUTPUT && v.sort === VariableSort.INT));
+      if (!masterOut) return;
+      const data = await client.default.counterfactualEndpointApiSmtCounterfactualPost({
+        desired_output_var: masterOut.var_id,
+        desired_val: 0,
+      });
+      const box = document.getElementById('solved-inputs-box');
+      if (data.status === CounterfactualStatus.COUNTERFACTUAL_FOUND) {
+        const changes = Object.values(data.changed_inputs);
+        box.innerHTML = `
+          <div class="text-sky-400 font-bold mb-1">🛠️ MaxSMT Counterfactual Repair (${changes.length} Minimal Input Adjustments to reach Nominal/CONTINUE):</div>
+          ${changes.length === 0 ? '<div>System is already in Nominal state (0 changes required).</div>' :
+            changes.map(c => `<div>• <strong>${c.human_name}:</strong> ${c.previous_value} ➔ <span class="text-emerald-400 font-bold">${c.required_value}</span></div>`).join('')}
+        `;
+      }
     }
 
-    async function changeRate(r) {
-      document.getElementById('rate-lbl').innerText = r;
-      await fetch(`/api/rate/${r}`, {method: 'POST'});
-    }
-
-    const ws = new WebSocket(`ws://${location.host}/ws`);
+    // Connect WebSocket
+    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProto}//${location.host}/ws`);
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data);
-      if (msg.occurrences) renderOccurrences(msg.occurrences);
-      const r = msg.result;
-      const feed = document.getElementById('live-stream');
-      const div = document.createElement('div');
-      const isInt = r.decision === 'INTERCEPT';
-      div.className = `p-1.5 rounded border ${isInt ? 'bg-rose-950/30 border-rose-800' : 'bg-slate-950 border-slate-800'}`;
-      div.innerHTML = `
-        <div class="flex justify-between">
-          <span class="font-bold ${isInt ? 'text-rose-400' : 'text-emerald-400'}">${r.decision} ${r.triggered_policy ? `(${r.triggered_policy})` : ''}</span>
-          <span class="text-slate-500">${r.latency_us} µs</span>
+      const d = msg.data;
+      document.getElementById('stream-latency').innerText = `${d.latency_us} µs`;
+
+      document.getElementById('live-directives').innerHTML = Object.entries(d.outputs).map(([k, v]) => `
+        <div class="p-2.5 rounded border ${String(v.label).includes('HALT') || String(v.label).includes('Flatten') ? 'bg-rose-950/40 border-rose-700' : 'bg-slate-950 border-slate-800'} flex justify-between items-center">
+          <span class="text-xs font-semibold text-slate-200">${v.human_name}</span>
+          <span class="font-mono text-xs font-bold text-emerald-400">${v.label}</span>
         </div>
-        <div class="text-slate-400 truncate">${JSON.stringify(r.event)}</div>
+      `).join('');
+
+      const feed = document.getElementById('stream-feed');
+      const item = document.createElement('div');
+      const isSolved = msg.type === 'SOLVED_INJECTION';
+      const isManual = msg.type === 'MANUAL_INJECTION';
+      item.className = `p-1.5 rounded border ${isSolved ? 'bg-purple-950/40 border-purple-500' : (isManual ? 'bg-sky-950/40 border-sky-500' : 'bg-slate-950 border-slate-800')}`;
+      item.innerHTML = `
+        <div class="flex justify-between">
+          <span class="font-bold ${isSolved ? 'text-purple-300' : (isManual ? 'text-sky-300' : 'text-emerald-400')}">
+            ${isSolved ? '[Z3 SOLVED INPUT INJECTION]' : (isManual ? '[MANUAL SIMULATION TICK]' : 'DAG_EVAL')}
+          </span>
+          <span class="text-slate-500">${d.latency_us} µs</span>
+        </div>
+        <div class="text-slate-400 truncate">Active Lineage (${d.elevated_lineage_nodes.length}): ${d.elevated_lineage_nodes.slice(0, 5).join(' ➔ ')}</div>
       `;
-      feed.prepend(div);
-      if (feed.children.length > 30) feed.removeChild(feed.lastChild);
+      feed.prepend(item);
+      if (feed.children.length > 25) feed.removeChild(feed.lastChild);
     };
 
-    loadWorkspace(true);
+    // Attach handlers to window for inline onclick attributes
+    window.reingestDocument = reingestDocument;
+    window.saveParams = saveParams;
+    window.solveForInputs = solveForInputs;
+    window.injectManualTelemetry = injectManualTelemetry;
+    window.runCounterfactual = runCounterfactual;
+
+    loadState();
   </script>
 </body>
 </html>

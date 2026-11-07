@@ -89,6 +89,14 @@ class VariableSort(StrEnum):
     BOOL = "bool"
 
 
+class ConceptModality(StrEnum):
+    """Semantic modality classification for variables and concepts."""
+
+    NUMERICAL = "numerical"
+    ORDINAL = "ordinal"
+    CATEGORICAL = "categorical"
+
+
 class ConstraintOperator(StrEnum):
     """Comparison operator applied to target variables during abductive solving."""
 
@@ -413,3 +421,12 @@ class EvaluateTelemetryRequest(BaseModel):
     """Custom input telemetry values submitted from the frontend for DAG evaluation."""
 
     telemetry: dict[str, float | int | bool] = Field(default_factory=dict)
+
+
+class SystemStateResponse(BaseModel):
+    """Full system state response returned by state query and update endpoints."""
+
+    graph: AutonomousPolicyGraph
+    param_overrides: dict[str, float] = Field(default_factory=dict)
+    verification: GraphVerificationReport
+    smtlib2_preview: str = ""

@@ -1,0 +1,35 @@
+{
+  "name": "@policyguard/client",
+  "version": "1.0.0",
+  "description": "Generated TypeScript/JavaScript client SDK and domain String Enums for PolicyGuard Deep Neuro-Symbolic SMT OS",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "models",
+    "services",
+    "core",
+    "index.ts",
+    "PolicyGuardClient.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "esbuild index.ts --bundle --format=esm --outfile=dist/index.js"
+  },
+  "keywords": [
+    "policyguard",
+    "z3",
+    "smt",
+    "neuro-symbolic",
+    "fastapi"
+  ],
+  "license": "Apache-2.0"
+}

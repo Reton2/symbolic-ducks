@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Literal
+from enum import StrEnum
+from typing import Any
 
 import z3
 from z3 import (
@@ -28,7 +29,14 @@ from z3 import (
 
 logger = logging.getLogger("app.control.smt_helpers")
 
-TargetSortMode = Literal["real", "int", "bool", "auto"]
+
+class TargetSortMode(StrEnum):
+    """Sort target mode for AST expression extraction."""
+
+    REAL = "real"
+    INT = "int"
+    BOOL = "bool"
+    AUTO = "auto"
 
 
 class SMTExpressionSyntaxError(Exception):

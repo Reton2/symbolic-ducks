@@ -6,16 +6,22 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.control.autoformalisation import DeepAutoformalizer
 from app.control.smt_engine import DeepSMTSolverEngine
 from app.data.runtime import TopologicalDAGRuntime
 from app.mandate import AMM_QRM_2026_V5_TEXT
 from app.schemas.schemas import (
+    AbductiveSolveResult,
     AutonomousPolicyGraph,
     CounterfactualRequest,
+    CounterfactualResult,
+    EvaluateTelemetryRequest,
     IngestDocumentRequest,
     SolveForInputsRequest,
+    SystemStateResponse,
+    TelemetryEvaluationResult,
     UpdateParamsRequest,
 )
 
@@ -92,6 +98,8 @@ app = FastAPI(
     title="PolicyGuard Deep Neuro-Symbolic SMT OS",
     lifespan=lifespan,
 )
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/packages", StaticFiles(directory="packages"), name="packages")
 
 
 def get_app_state() -> AppState:
@@ -106,22 +114,22 @@ async def index():
     return FileResponse("static/index.html")
 
 
-@app.get("/api/state")
-async def get_system_state():
+@app.get("/api/state", response_model=SystemStateResponse)
+async def get_system_state() -> SystemStateResponse:
     state = get_app_state()
     solver = DeepSMTSolverEngine(state.graph, state.param_overrides)
     verification = solver.verify_full_graph()
     logger.debug("System state retrieved: verification=%s", verification.status)
-    return {
-        "graph": state.graph.model_dump(),
-        "param_overrides": state.param_overrides,
-        "verification": verification.model_dump(),
-        "smtlib2_preview": solver.export_smtlib2()[:4000],
-    }
+    return SystemStateResponse(
+        graph=state.graph,
+        param_overrides=state.param_overrides,
+        verification=verification,
+        smtlib2_preview=solver.export_smtlib2()[:4000],
+    )
 
 
-@app.post("/api/params/update")
-async def update_parameters(req: UpdateParamsRequest):
+@app.post("/api/params/update", response_model=SystemStateResponse)
+async def update_parameters(req: UpdateParamsRequest) -> SystemStateResponse:
     state = get_app_state()
     state.param_overrides.update(req.param_overrides)
     for k, val in req.param_overrides.items():
@@ -132,8 +140,8 @@ async def update_parameters(req: UpdateParamsRequest):
     return await get_system_state()
 
 
-@app.post("/api/smt/solve-inputs")
-async def solve_for_inputs_endpoint(req: SolveForInputsRequest):
+@app.post("/api/smt/solve-inputs", response_model=AbductiveSolveResult)
+async def solve_for_inputs_endpoint(req: SolveForInputsRequest) -> AbductiveSolveResult:
     """Abductive Z3 solving: synthesizes foundational telemetry values from desired target constraints."""
     state = get_app_state()
     solver = DeepSMTSolverEngine(state.graph, state.param_overrides)
@@ -154,11 +162,11 @@ async def solve_for_inputs_endpoint(req: SolveForInputsRequest):
             "Injected solved telemetry to %d WebSocket clients", len(state.clients)
         )
 
-    return res.model_dump()
+    return res
 
 
-@app.post("/api/smt/counterfactual")
-async def counterfactual_endpoint(req: CounterfactualRequest):
+@app.post("/api/smt/counterfactual", response_model=CounterfactualResult)
+async def counterfactual_endpoint(req: CounterfactualRequest) -> CounterfactualResult:
     """MaxSMT counterfactual search: finds minimal input interventions."""
     state = get_app_state()
     solver = DeepSMTSolverEngine(state.graph, state.param_overrides)
@@ -171,7 +179,25 @@ async def counterfactual_endpoint(req: CounterfactualRequest):
         current_in, req.desired_output_var, req.desired_val
     )
     logger.info("Counterfactual repair status: %s", res.status)
-    return res.model_dump()
+    return res
+
+
+@app.post("/api/telemetry/evaluate", response_model=TelemetryEvaluationResult)
+async def evaluate_telemetry_endpoint(
+    req: EvaluateTelemetryRequest,
+) -> TelemetryEvaluationResult:
+    """Evaluates arbitrary input telemetry values and broadcasts to live clients."""
+    state = get_app_state()
+    res = state.runtime.evaluate_telemetry(req.telemetry)
+    payload = {"type": "MANUAL_INJECTION", "data": res.model_dump()}
+    dead: set[WebSocket] = set()
+    for ws in list(state.clients):
+        try:
+            await ws.send_json(payload)
+        except Exception:
+            dead.add(ws)
+    state.clients -= dead
+    return res
 
 
 @app.get("/api/smtlib2", response_class=PlainTextResponse)
@@ -195,8 +221,10 @@ async def ws_endpoint(ws: WebSocket):
         logger.info("WebSocket disconnected (remaining: %d)", len(state.clients))
 
 
-@app.post("/api/ingest-document")
-async def ingest_unstructured_document(req: IngestDocumentRequest):
+@app.post("/api/ingest-document", response_model=SystemStateResponse)
+async def ingest_unstructured_document(
+    req: IngestDocumentRequest,
+) -> SystemStateResponse:
     """Ingests unstructured policy text, infers causal graph topology, and hot-swaps Z3."""
     state = get_app_state()
     logger.info(

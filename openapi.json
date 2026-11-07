@@ -1,0 +1,1038 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PolicyGuard Deep Neuro-Symbolic SMT OS",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Index",
+        "operationId": "index__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/state": {
+      "get": {
+        "summary": "Get System State",
+        "operationId": "get_system_state_api_state_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/params/update": {
+      "post": {
+        "summary": "Update Parameters",
+        "operationId": "update_parameters_api_params_update_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateParamsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/smt/solve-inputs": {
+      "post": {
+        "summary": "Solve For Inputs Endpoint",
+        "description": "Abductive Z3 solving: synthesizes foundational telemetry values from desired target constraints.",
+        "operationId": "solve_for_inputs_endpoint_api_smt_solve_inputs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolveForInputsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbductiveSolveResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/smt/counterfactual": {
+      "post": {
+        "summary": "Counterfactual Endpoint",
+        "description": "MaxSMT counterfactual search: finds minimal input interventions.",
+        "operationId": "counterfactual_endpoint_api_smt_counterfactual_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CounterfactualRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CounterfactualResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telemetry/evaluate": {
+      "post": {
+        "summary": "Evaluate Telemetry Endpoint",
+        "description": "Evaluates arbitrary input telemetry values and broadcasts to live clients.",
+        "operationId": "evaluate_telemetry_endpoint_api_telemetry_evaluate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateTelemetryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryEvaluationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/smtlib2": {
+      "get": {
+        "summary": "Download Smtlib2",
+        "operationId": "download_smtlib2_api_smtlib2_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingest-document": {
+      "post": {
+        "summary": "Ingest Unstructured Document",
+        "description": "Ingests unstructured policy text, infers causal graph topology, and hot-swaps Z3.",
+        "operationId": "ingest_unstructured_document_api_ingest_document_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestDocumentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AbductiveSolveResult": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/AbductiveSolveStatus"
+          },
+          "applied_targets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Applied Targets"
+          },
+          "solved_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SolvedModelWitness"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "AbductiveSolveResult",
+        "description": "Result of solving backwards from target states to primary input variables."
+      },
+      "AbductiveSolveStatus": {
+        "type": "string",
+        "enum": [
+          "SATISFIABLE",
+          "UNSATISFIABLE"
+        ],
+        "title": "AbductiveSolveStatus",
+        "description": "Outcome status of abductive backward input synthesis."
+      },
+      "AutonomousPolicyGraph": {
+        "properties": {
+          "graph_id": {
+            "type": "string",
+            "title": "Graph Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "raw_document_text": {
+            "type": "string",
+            "title": "Raw Document Text"
+          },
+          "sentence_count": {
+            "type": "integer",
+            "title": "Sentence Count"
+          },
+          "variables": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/InferredVariable"
+            },
+            "type": "object",
+            "title": "Variables"
+          },
+          "equations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/InferredEquation"
+            },
+            "type": "object",
+            "title": "Equations"
+          },
+          "topological_order": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topological Order"
+          },
+          "cegis_compiler_log": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cegis Compiler Log"
+          }
+        },
+        "type": "object",
+        "required": [
+          "graph_id",
+          "title",
+          "raw_document_text",
+          "sentence_count"
+        ],
+        "title": "AutonomousPolicyGraph"
+      },
+      "ChangedInputSpec": {
+        "properties": {
+          "human_name": {
+            "type": "string",
+            "title": "Human Name"
+          },
+          "previous_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "Previous Value"
+          },
+          "required_value": {
+            "type": "string",
+            "title": "Required Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "human_name",
+          "previous_value",
+          "required_value"
+        ],
+        "title": "ChangedInputSpec",
+        "description": "Minimal modification required on a primary input to reach counterfactual goal."
+      },
+      "ConstraintOperator": {
+        "type": "string",
+        "enum": [
+          "==",
+          "!=",
+          ">",
+          ">=",
+          "<",
+          "<="
+        ],
+        "title": "ConstraintOperator",
+        "description": "Comparison operator applied to target variables during abductive solving."
+      },
+      "CounterfactualRequest": {
+        "properties": {
+          "desired_output_var": {
+            "type": "string",
+            "title": "Desired Output Var"
+          },
+          "desired_val": {
+            "type": "number",
+            "title": "Desired Val"
+          }
+        },
+        "type": "object",
+        "required": [
+          "desired_output_var",
+          "desired_val"
+        ],
+        "title": "CounterfactualRequest"
+      },
+      "CounterfactualResult": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/CounterfactualStatus"
+          },
+          "minimal_input_changes_count": {
+            "type": "integer",
+            "title": "Minimal Input Changes Count",
+            "default": 0
+          },
+          "changed_inputs": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ChangedInputSpec"
+            },
+            "type": "object",
+            "title": "Changed Inputs"
+          },
+          "resulting_outputs": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/VariableSolvedState"
+            },
+            "type": "object",
+            "title": "Resulting Outputs"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "CounterfactualResult",
+        "description": "Max-SMT optimization result identifying minimal primary input deviations."
+      },
+      "CounterfactualStatus": {
+        "type": "string",
+        "enum": [
+          "COUNTERFACTUAL_FOUND",
+          "UNSAT"
+        ],
+        "title": "CounterfactualStatus",
+        "description": "Outcome status of MaxSMT counterfactual minimal repair search."
+      },
+      "EvaluateTelemetryRequest": {
+        "properties": {
+          "telemetry": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Telemetry"
+          }
+        },
+        "type": "object",
+        "title": "EvaluateTelemetryRequest",
+        "description": "Custom input telemetry values submitted from the frontend for DAG evaluation."
+      },
+      "GraphVerificationReport": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/VerificationStatus"
+          },
+          "consistent": {
+            "type": "boolean",
+            "title": "Consistent"
+          },
+          "dead_state_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Dead State Warnings"
+          },
+          "reachability_proofs": {
+            "items": {
+              "$ref": "#/components/schemas/ReachabilityProof"
+            },
+            "type": "array",
+            "title": "Reachability Proofs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "consistent"
+        ],
+        "title": "GraphVerificationReport",
+        "description": "Formal audit report proving base satisfiability and absence of dead states."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "InferredEquation": {
+        "properties": {
+          "equation_id": {
+            "type": "string",
+            "title": "Equation Id"
+          },
+          "target_var": {
+            "type": "string",
+            "title": "Target Var"
+          },
+          "dependencies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Dependencies"
+          },
+          "smt_expression": {
+            "type": "string",
+            "title": "Smt Expression",
+            "description": "Valid Z3 symbolic formula using v['var_id']"
+          },
+          "natural_language_logic": {
+            "type": "string",
+            "title": "Natural Language Logic",
+            "default": ""
+          },
+          "source_sentence_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Source Sentence Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "equation_id",
+          "target_var",
+          "smt_expression"
+        ],
+        "title": "InferredEquation",
+        "description": "A Z3 symbolic equation synthesized by aggregating all sentences governing `target_var`."
+      },
+      "InferredVariable": {
+        "properties": {
+          "var_id": {
+            "type": "string",
+            "title": "Var Id"
+          },
+          "human_name": {
+            "type": "string",
+            "title": "Human Name"
+          },
+          "role": {
+            "$ref": "#/components/schemas/VariableRole"
+          },
+          "in_degree": {
+            "type": "integer",
+            "title": "In Degree",
+            "description": "Number of upstream concepts this variable depends on",
+            "default": 0
+          },
+          "out_degree": {
+            "type": "integer",
+            "title": "Out Degree",
+            "description": "Number of downstream concepts that depend on this variable",
+            "default": 0
+          },
+          "layer_index": {
+            "type": "integer",
+            "title": "Layer Index",
+            "description": "Topological depth: 0 for deg-(v)==0 inputs, K for sinks",
+            "default": 0
+          },
+          "sort": {
+            "$ref": "#/components/schemas/VariableSort"
+          },
+          "ordinal_levels": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ordinal Levels"
+          },
+          "min_bound": {
+            "type": "number",
+            "title": "Min Bound",
+            "default": 0.0
+          },
+          "max_bound": {
+            "type": "number",
+            "title": "Max Bound",
+            "default": 100.0
+          },
+          "default_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "Default Value",
+            "default": 0.0
+          },
+          "source_sentence_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Source Sentence Ids",
+            "description": "Sentence indices anywhere in the text that reference/define this entity"
+          },
+          "source_excerpts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Excerpts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "var_id",
+          "human_name",
+          "role",
+          "sort"
+        ],
+        "title": "InferredVariable",
+        "description": "An entity autonomously discovered and resolved across unordered sentences."
+      },
+      "IngestDocumentRequest": {
+        "properties": {
+          "raw_text": {
+            "type": "string",
+            "title": "Raw Text"
+          },
+          "shuffle_sentences": {
+            "type": "boolean",
+            "title": "Shuffle Sentences",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "raw_text"
+        ],
+        "title": "IngestDocumentRequest"
+      },
+      "ReachabilityProof": {
+        "properties": {
+          "output_var": {
+            "type": "string",
+            "title": "Output Var"
+          },
+          "human_name": {
+            "type": "string",
+            "title": "Human Name"
+          },
+          "target_state": {
+            "type": "string",
+            "title": "Target State"
+          },
+          "reachable": {
+            "type": "boolean",
+            "title": "Reachable"
+          }
+        },
+        "type": "object",
+        "required": [
+          "output_var",
+          "human_name",
+          "target_state",
+          "reachable"
+        ],
+        "title": "ReachabilityProof",
+        "description": "Proof record for an output state reachable under active parameter values."
+      },
+      "SolveForInputsRequest": {
+        "properties": {
+          "target_constraints": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TargetConstraintSpec"
+            },
+            "type": "object",
+            "title": "Target Constraints"
+          }
+        },
+        "type": "object",
+        "title": "SolveForInputsRequest"
+      },
+      "SolvedModelWitness": {
+        "properties": {
+          "INPUT": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/VariableSolvedState"
+            },
+            "type": "object",
+            "title": "Input"
+          },
+          "INTERMEDIATE": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/VariableSolvedState"
+            },
+            "type": "object",
+            "title": "Intermediate"
+          },
+          "OUTPUT": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/VariableSolvedState"
+            },
+            "type": "object",
+            "title": "Output"
+          },
+          "PARAMETER": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/VariableSolvedState"
+            },
+            "type": "object",
+            "title": "Parameter"
+          }
+        },
+        "type": "object",
+        "title": "SolvedModelWitness",
+        "description": "Separated variable assignments grouped by their topological graph role."
+      },
+      "SystemStateResponse": {
+        "properties": {
+          "graph": {
+            "$ref": "#/components/schemas/AutonomousPolicyGraph"
+          },
+          "param_overrides": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Param Overrides"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/GraphVerificationReport"
+          },
+          "smtlib2_preview": {
+            "type": "string",
+            "title": "Smtlib2 Preview",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "graph",
+          "verification"
+        ],
+        "title": "SystemStateResponse",
+        "description": "Full system state response returned by state query and update endpoints."
+      },
+      "TargetConstraintSpec": {
+        "properties": {
+          "op": {
+            "$ref": "#/components/schemas/ConstraintOperator",
+            "default": "=="
+          },
+          "val": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Val"
+          }
+        },
+        "type": "object",
+        "required": [
+          "val"
+        ],
+        "title": "TargetConstraintSpec",
+        "description": "User-specified constraint applied during abductive input synthesis."
+      },
+      "TelemetryEvaluationResult": {
+        "properties": {
+          "latency_us": {
+            "type": "number",
+            "title": "Latency Us"
+          },
+          "outputs": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TelemetryOutputDirective"
+            },
+            "type": "object",
+            "title": "Outputs"
+          },
+          "elevated_lineage_nodes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Elevated Lineage Nodes"
+          },
+          "full_state": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Full State"
+          }
+        },
+        "type": "object",
+        "required": [
+          "latency_us"
+        ],
+        "title": "TelemetryEvaluationResult",
+        "description": "High-frequency evaluation result produced by the topological DAG runtime."
+      },
+      "TelemetryOutputDirective": {
+        "properties": {
+          "human_name": {
+            "type": "string",
+            "title": "Human Name"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "human_name",
+          "value",
+          "label"
+        ],
+        "title": "TelemetryOutputDirective",
+        "description": "Concrete evaluated output directive state with human-readable label."
+      },
+      "UpdateParamsRequest": {
+        "properties": {
+          "param_overrides": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Param Overrides"
+          }
+        },
+        "type": "object",
+        "title": "UpdateParamsRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VariableRole": {
+        "type": "string",
+        "enum": [
+          "INPUT",
+          "INTERMEDIATE",
+          "OUTPUT",
+          "PARAMETER"
+        ],
+        "title": "VariableRole",
+        "description": "Topological graph-theoretic role of a policy variable."
+      },
+      "VariableSolvedState": {
+        "properties": {
+          "human_name": {
+            "type": "string",
+            "title": "Human Name"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "Value"
+          },
+          "formatted": {
+            "type": "string",
+            "title": "Formatted"
+          },
+          "layer": {
+            "type": "integer",
+            "title": "Layer",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "human_name",
+          "value",
+          "formatted"
+        ],
+        "title": "VariableSolvedState",
+        "description": "Structured concrete valuation of a variable extracted from a Z3 SAT model."
+      },
+      "VariableSort": {
+        "type": "string",
+        "enum": [
+          "real",
+          "int",
+          "bool"
+        ],
+        "title": "VariableSort",
+        "description": "First-order logic sort representation in Z3 SMT solver."
+      },
+      "VerificationStatus": {
+        "type": "string",
+        "enum": [
+          "VERIFIED",
+          "DEAD_LOGIC_DETECTED"
+        ],
+        "title": "VerificationStatus",
+        "description": "Formal proof outcome for overall policy graph verification."
+      }
+    }
+  }
+}
