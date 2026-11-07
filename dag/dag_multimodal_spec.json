@@ -1,0 +1,909 @@
+{
+  "title": "WORLD DAG TOPOLOGY: MULTI-MODAL (CATEGORICAL, ORDINAL, NUMERICAL)",
+  "seed": 39534,
+  "effective_depth": 5,
+  "counts": {
+    "state_inputs": {
+      "total": 35,
+      "categorical": 10,
+      "ordinal": 10,
+      "numerical": 15
+    },
+    "derived_nodes": {
+      "total": 32,
+      "categorical": 10,
+      "ordinal": 11,
+      "numerical": 11
+    },
+    "actions": {
+      "total": 3,
+      "categorical": 1,
+      "ordinal": 1,
+      "numerical": 1
+    }
+  },
+  "state_inputs": {
+    "s_flash_crash_detected": {
+      "var_name": "n_market_1m_return_pct",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "%",
+      "domain": [
+        -25.0,
+        10.0
+      ],
+      "default": 0.2,
+      "description": "1-minute broad market return (%)"
+    },
+    "s_liquidity_dryup": {
+      "var_name": "n_book_depth_usd",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "USD",
+      "domain": [
+        0.0,
+        5000000.0
+      ],
+      "default": 450000.0,
+      "description": "Top-of-book consolidated depth in USD"
+    },
+    "s_volatility_halt": {
+      "var_name": "o_volatility_halt_stage",
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "domain": [
+        0,
+        3
+      ],
+      "labels": [
+        "0:NORMAL",
+        "1:LULD_WARNING",
+        "2:VOLATILITY_PAUSE",
+        "3:HALTED"
+      ],
+      "default": 0,
+      "description": "Exchange volatility pause / LULD auction stage"
+    },
+    "s_latency_spike": {
+      "var_name": "o_latency_tier",
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "domain": [
+        0,
+        3
+      ],
+      "labels": [
+        "0:ULTRA_LOW",
+        "1:NOMINAL",
+        "2:SPIKE_WARNING",
+        "3:CRITICAL_LATENCY"
+      ],
+      "default": 1,
+      "description": "Order round-trip gateway latency tier"
+    },
+    "s_api_rate_limit": {
+      "var_name": "o_api_throttle_stage",
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "stage",
+      "domain": [
+        0,
+        3
+      ],
+      "labels": [
+        "0:GREEN",
+        "1:YELLOW_BURST",
+        "2:ORANGE_THROTTLED",
+        "3:RED_RATE_LIMIT"
+      ],
+      "default": 0,
+      "description": "API throttling capacity stage"
+    },
+    "s_margin_call": {
+      "var_name": "o_margin_call_severity",
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "domain": [
+        0,
+        2
+      ],
+      "labels": [
+        "0:ADEQUATE",
+        "1:MAINTENANCE_WARNING",
+        "2:MARGIN_CALL_DEFICIT"
+      ],
+      "default": 0,
+      "description": "Broker maintenance margin deficit tier"
+    },
+    "s_order_book_imbalance": {
+      "var_name": "n_order_book_imbalance_ratio",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "ratio",
+      "domain": [
+        -1.0,
+        1.0
+      ],
+      "default": 0.05,
+      "description": "L1 top-of-book (Bid - Ask)/(Bid + Ask) imbalance"
+    },
+    "s_dark_pool_divergence": {
+      "var_name": "n_dark_pool_divergence_bps",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "bps",
+      "domain": [
+        0.0,
+        100.0
+      ],
+      "default": 2.5,
+      "description": "Dark ATS mid vs lit NBBO divergence"
+    },
+    "s_vwap_deviation": {
+      "var_name": "n_vwap_deviation_bps",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "bps",
+      "domain": [
+        0.0,
+        250.0
+      ],
+      "default": 4.0,
+      "description": "Realized execution drift from VWAP"
+    },
+    "s_momentum_reversal": {
+      "var_name": "n_rsi_momentum_index",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "index",
+      "domain": [
+        0.0,
+        100.0
+      ],
+      "default": 54.0,
+      "description": "14-period RSI momentum oscillator"
+    },
+    "s_liquidity_shock": {
+      "var_name": "o_liquidity_stress_tier",
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "domain": [
+        0,
+        4
+      ],
+      "labels": [
+        "0:CALM",
+        "1:NORMAL",
+        "2:ELEVATED",
+        "3:STRESSED",
+        "4:CRISIS"
+      ],
+      "default": 1,
+      "description": "Composite market liquidity stress tier"
+    },
+    "s_kill_switch_armed": {
+      "var_name": "c_kill_switch_authority",
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "KillSwitchAuthority",
+      "values": [
+        "DISARMED",
+        "RISK_ADMIN_STANDBY",
+        "AUTO_TRIGGER_ENGAGED"
+      ],
+      "default": "DISARMED",
+      "description": "Desk kill switch administrative state"
+    },
+    "s_short_sale_restricted": {
+      "var_name": "c_short_sale_mode",
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "SSRMode",
+      "values": [
+        "UNRESTRICTED",
+        "RULE_201_TRIGGERED",
+        "HARD_BORROW_BAN"
+      ],
+      "default": "UNRESTRICTED",
+      "description": "Regulatory short-sale restriction mode"
+    },
+    "s_wash_trade_flag": {
+      "var_name": "c_wash_trade_detector_state",
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "WashTradeState",
+      "values": [
+        "CLEAR",
+        "SUSPICIOUS_CROSS",
+        "FLAGGED_VIOLATION"
+      ],
+      "default": "CLEAR",
+      "description": "Self-matching / wash trade monitor state"
+    },
+    "s_spoofing_detected": {
+      "var_name": "o_spoofing_risk_tier",
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "domain": [
+        0,
+        3
+      ],
+      "labels": [
+        "0:LOW",
+        "1:GUARDED",
+        "2:ELEVATED",
+        "3:SEVERE"
+      ],
+      "default": 0,
+      "description": "Cancel-to-fill ratio spoofing risk tier"
+    },
+    "s_fix_connection_dropped": {
+      "var_name": "c_fix_session_state",
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "FixSessionState",
+      "values": [
+        "CONNECTED",
+        "HEARTBEAT_DEGRADED",
+        "DROPPED"
+      ],
+      "default": "CONNECTED",
+      "description": "FIX protocol engine connection status"
+    },
+    "s_sentiment_spike": {
+      "var_name": "n_news_sentiment_zscore",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "sigma",
+      "domain": [
+        -5.0,
+        5.0
+      ],
+      "default": 0.1,
+      "description": "News/social media sentiment momentum z-score"
+    },
+    "s_gamma_squeeze": {
+      "var_name": "o_gamma_squeeze_tier",
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "domain": [
+        0,
+        2
+      ],
+      "labels": [
+        "0:NEUTRAL",
+        "1:MODERATE_GAMMA",
+        "2:ACUTE_GAMMA_SQUEEZE"
+      ],
+      "default": 0,
+      "description": "Options market maker gamma exposure tier"
+    },
+    "s_vix_surge": {
+      "var_name": "n_vix_index_level",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "pts",
+      "domain": [
+        9.0,
+        90.0
+      ],
+      "default": 17.5,
+      "description": "CBOE Volatility Index (VIX) real-time points"
+    },
+    "s_inventory_limit_reached": {
+      "var_name": "o_inventory_risk_tier",
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "domain": [
+        0,
+        2
+      ],
+      "labels": [
+        "0:WITHIN_LIMITS",
+        "1:APPROACHING_MAX",
+        "2:LIMIT_BREACHED"
+      ],
+      "default": 0,
+      "description": "Desk inventory risk position tier"
+    },
+    "s_spread_widened": {
+      "var_name": "n_bid_ask_spread_bps",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "bps",
+      "domain": [
+        0.1,
+        300.0
+      ],
+      "default": 4.2,
+      "description": "Quoted bid-ask spread in basis points"
+    },
+    "s_correlation_break": {
+      "var_name": "n_benchmark_correlation",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "corr",
+      "domain": [
+        -1.0,
+        1.0
+      ],
+      "default": 0.82,
+      "description": "30m correlation to lead market ETF"
+    },
+    "s_tick_size_violation": {
+      "var_name": "c_tick_rule_compliance",
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "TickRuleState",
+      "values": [
+        "COMPLIANT",
+        "SUB_PENNY_WARNING",
+        "MPV_VIOLATION"
+      ],
+      "default": "COMPLIANT",
+      "description": "Sub-penny rule minimum price variation status"
+    },
+    "s_fat_finger_check": {
+      "var_name": "n_order_adv_pct",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "%",
+      "domain": [
+        0.0,
+        50.0
+      ],
+      "default": 0.8,
+      "description": "Single order notional as % of 30-day ADV"
+    },
+    "s_market_close_imminent": {
+      "var_name": "c_market_session_phase",
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "SessionPhase",
+      "values": [
+        "PRE_MARKET",
+        "CORE_TRADING",
+        "CLOSING_CROSS",
+        "POST_CLOSE"
+      ],
+      "default": "CORE_TRADING",
+      "description": "Current trading session schedule phase"
+    },
+    "s_circuit_breaker_level1": {
+      "var_name": "o_circuit_breaker_tier",
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "level",
+      "domain": [
+        0,
+        3
+      ],
+      "labels": [
+        "0:NONE",
+        "1:LEVEL_1_7PCT",
+        "2:LEVEL_2_13PCT",
+        "3:LEVEL_3_20PCT"
+      ],
+      "default": 0,
+      "description": "Market-wide regulatory circuit breaker level"
+    },
+    "s_colocation_power_loss": {
+      "var_name": "c_colocation_power_feed",
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "PowerFeedStatus",
+      "values": [
+        "DUAL_MAINS",
+        "GENERATOR",
+        "TOTAL_POWER_LOSS"
+      ],
+      "default": "DUAL_MAINS",
+      "description": "Data center electrical feed status"
+    },
+    "s_quote_stuffing": {
+      "var_name": "n_feed_message_rate_per_sec",
+      "kind": "NUMERICAL",
+      "type": "int",
+      "unit": "msg/s",
+      "domain": [
+        100,
+        100000
+      ],
+      "default": 4500,
+      "description": "Inbound quote message rate per second"
+    },
+    "s_alpha_decay": {
+      "var_name": "n_signal_alpha_score",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "z",
+      "domain": [
+        -5.0,
+        5.0
+      ],
+      "default": 1.4,
+      "description": "Alpha model forecast strength z-score"
+    },
+    "s_slippage_extreme": {
+      "var_name": "n_realized_slippage_bps",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "bps",
+      "domain": [
+        -10.0,
+        200.0
+      ],
+      "default": 3.5,
+      "description": "Realized execution slippage vs arrival"
+    },
+    "s_stale_data": {
+      "var_name": "c_feed_data_status",
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "FeedHealth",
+      "values": [
+        "REALTIME_SYNCHRONIZED",
+        "SEQUENCE_GAP",
+        "STALE_DROPPED"
+      ],
+      "default": "REALTIME_SYNCHRONIZED",
+      "description": "Matching engine data feed heartbeat health"
+    },
+    "s_short_locate_failed": {
+      "var_name": "c_prime_locate_status",
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "LocateStatus",
+      "values": [
+        "LOCATE_CONFIRMED",
+        "PRE_BORROW_ONLY",
+        "LOCATE_FAILED"
+      ],
+      "default": "LOCATE_CONFIRMED",
+      "description": "Prime broker stock loan borrow locate status"
+    },
+    "s_pnl_drawdown_limit": {
+      "var_name": "n_intraday_pnl_drawdown_pct",
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "%",
+      "domain": [
+        0.0,
+        25.0
+      ],
+      "default": 0.45,
+      "description": "Intraday strategy drawdown percentage"
+    },
+    "s_algo_loop_detected": {
+      "var_name": "c_algo_loop_state",
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "AlgoLoopState",
+      "values": [
+        "NOMINAL",
+        "RAPID_RETRY",
+        "RUNAWAY_LOOP"
+      ],
+      "default": "NOMINAL",
+      "description": "Self-referential execution order loop detector"
+    },
+    "s_overnight_gap": {
+      "var_name": "o_overnight_gap_tier",
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "domain": [
+        0,
+        2
+      ],
+      "labels": [
+        "0:FLAT",
+        "1:MODERATE_GAP",
+        "2:EXTREME_GAP"
+      ],
+      "default": 0,
+      "description": "Session opening gap magnitude tier"
+    }
+  },
+  "derived_nodes": {
+    "d_algo_gate_1": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "score",
+      "description": "Execution Latency & VWAP Quality Score (0..100)"
+    },
+    "d_algo_gate_2": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "labels": [
+        "0:BALANCED",
+        "1:MILD",
+        "2:MODERATE",
+        "3:ACUTE",
+        "4:EXTREME"
+      ],
+      "description": "Order Book Microstructure Imbalance Tier (0..4)"
+    },
+    "d_algo_gate_3": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "index",
+      "description": "Flow Toxicity & Wash Risk Index (0..100)"
+    },
+    "d_algo_gate_4": {
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "OrderValidationStatus",
+      "values": [
+        "VALID",
+        "SUSPICIOUS",
+        "REJECTED"
+      ],
+      "description": "Pre-Trade Order Validation Status"
+    },
+    "d_algo_gate_5": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "labels": [
+        "0:CLEAR",
+        "1:WATCH",
+        "2:THROTTLE",
+        "3:INTERCEPT"
+      ],
+      "description": "Gateway Throttle & Risk Alarm Tier (0..3)"
+    },
+    "d_algo_gate_6": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "metric",
+      "description": "Capital Drawdown & Depth Depletion Metric (0..100)"
+    },
+    "d_algo_gate_7": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "factor",
+      "description": "Volatility & Tick Discrepancy Surge Factor (0..100)"
+    },
+    "d_algo_gate_8": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "labels": [
+        "0:STABLE",
+        "1:STRESSED",
+        "2:BREAKDOWN",
+        "3:MARGIN_DEFICIT"
+      ],
+      "description": "Correlation Breakdown & Alpha Decay Tier (0..3)"
+    },
+    "d_algo_gate_9": {
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "InfraHealthMode",
+      "values": [
+        "NOMINAL",
+        "DEGRADED",
+        "CRITICAL_FAILURE"
+      ],
+      "description": "Infrastructure & Borrow Availability Health Mode"
+    },
+    "d_algo_gate_10": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "index",
+      "description": "Market Dislocation & Gamma Pressure Index (0..100)"
+    },
+    "d_algo_gate_11": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "labels": [
+        "0:CALM",
+        "1:BUSY",
+        "2:CONGESTED",
+        "3:SATURATED"
+      ],
+      "description": "Feed Message Congestion Tier (0..3)"
+    },
+    "d_algo_gate_12": {
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "MarketAccessRegime",
+      "values": [
+        "UNRESTRICTED_ACCESS",
+        "RESTRICTED_ACCESS",
+        "BLOCKED"
+      ],
+      "description": "Market Access Permission Regime"
+    },
+    "d_algo_gate_13": {
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "RoutingMode",
+      "values": [
+        "DIRECT_MARKET",
+        "SMART_ROUTER",
+        "DARK_ONLY",
+        "SUSPENDED"
+      ],
+      "description": "Execution Venue Routing Mode"
+    },
+    "d_algo_gate_14": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "factor",
+      "description": "Cross-Asset Liquidity Shock Multiplier (0..100)"
+    },
+    "d_algo_gate_15": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "labels": [
+        "0:NORMAL",
+        "1:PACED",
+        "2:THROTTLED",
+        "3:RATE_LIMITED"
+      ],
+      "description": "Gateway Rate-Limiting Severity Tier (0..3)"
+    },
+    "d_algo_gate_16": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "score",
+      "description": "News Sentiment Amplification Score (0..100)"
+    },
+    "d_algo_gate_17": {
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "TradingDeskPosture",
+      "values": [
+        "AGGRESSIVE",
+        "NEUTRAL",
+        "DEFENSIVE",
+        "HALTED"
+      ],
+      "description": "Desk Risk Execution Posture"
+    },
+    "d_algo_gate_18": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "labels": [
+        "0:RESILIENT",
+        "1:GUARDED",
+        "2:VULNERABLE",
+        "3:ACUTE_STRESS",
+        "4:CRISIS"
+      ],
+      "description": "Liquidity Shock Vulnerability Tier (0..4)"
+    },
+    "d_algo_gate_19": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "labels": [
+        "0:NOMINAL",
+        "1:ELEVATED",
+        "2:HIGH_LOSS",
+        "3:BREACH"
+      ],
+      "description": "Portfolio Drawdown Escalation Tier (0..3)"
+    },
+    "d_algo_gate_20": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "pressure",
+      "description": "Depth Depletion & Imbalance Pressure (0..100)"
+    },
+    "d_algo_gate_21": {
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "RiskGateDecision",
+      "values": [
+        "ALLOW_FLOW",
+        "THROTTLE_FLOW",
+        "INTERCEPT_FLOW"
+      ],
+      "description": "Risk Firewall Gate Decision"
+    },
+    "d_algo_gate_22": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "labels": [
+        "0:AUTHORIZED",
+        "1:STANDBY",
+        "2:ARMED",
+        "3:ENGAGED"
+      ],
+      "description": "Master Kill Switch Readiness Tier (0..3)"
+    },
+    "d_algo_gate_23": {
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "StrategyOpState",
+      "values": [
+        "NORMAL_OPERATION",
+        "REDUCE_EXPOSURE",
+        "EMERGENCY_SHUTDOWN"
+      ],
+      "description": "Strategy Operational State"
+    },
+    "d_algo_gate_24": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "indicator",
+      "description": "Systemic Sentiment Cascade Indicator (0..100)"
+    },
+    "d_algo_gate_25": {
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "RoutingVerdict",
+      "values": [
+        "ROUTE_APPROVED",
+        "ROUTE_CONSTRAINED",
+        "ROUTE_PROHIBITED"
+      ],
+      "description": "Order Routing Compliance Verdict"
+    },
+    "d_algo_gate_26": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "labels": [
+        "0:SAFE",
+        "1:WATCH",
+        "2:WARNING",
+        "3:SEVERE",
+        "4:CRITICAL"
+      ],
+      "description": "Position Deleveraging Threat Level (0..4)"
+    },
+    "d_algo_gate_27": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "metric",
+      "description": "Execution Feasibility Metric (0..100)"
+    },
+    "d_algo_gate_28": {
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "LiqPolicyTrigger",
+      "values": [
+        "NO_ACTION",
+        "PARTIAL_DELEVERAGE",
+        "FULL_LIQUIDATION"
+      ],
+      "description": "Portfolio Liquidation Policy Trigger"
+    },
+    "d_algo_gate_29": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "labels": [
+        "0:UNPREPARED",
+        "1:LOW",
+        "2:MODERATE",
+        "3:HIGH",
+        "4:PRIME"
+      ],
+      "description": "Block Execution Readiness Rank (0..4)"
+    },
+    "d_algo_gate_30": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "capacity",
+      "description": "Composite Block Trade Capacity Score (0..100)"
+    },
+    "d_algo_gate_31": {
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "AlgoGovernanceState",
+      "values": [
+        "ACTIVE_EXECUTION",
+        "STANDBY_PAUSE",
+        "TERMINATION"
+      ],
+      "description": "Algorithmic Governance Operating State"
+    },
+    "d_algo_gate_32": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "labels": [
+        "0:PASSIVE",
+        "1:GUARDED",
+        "2:ELEVATED",
+        "3:URGENT",
+        "4:EMERGENCY"
+      ],
+      "description": "Inventory Unwind Urgency Level (0..4)"
+    }
+  },
+  "actions": {
+    "a_execute_block": {
+      "kind": "NUMERICAL",
+      "type": "real",
+      "unit": "%",
+      "domain": [
+        0.0,
+        100.0
+      ],
+      "description": "Block Trade Order Notional Allocation Percentage (0.0% to 100.0%)"
+    },
+    "a_liquidate_all": {
+      "kind": "ORDINAL",
+      "type": "ordinal",
+      "unit": "tier",
+      "domain": [
+        0,
+        3
+      ],
+      "labels": [
+        "0:NO_LIQUIDATION",
+        "1:SOFT_DELEVERAGE",
+        "2:ORDERLY_WIND_DOWN",
+        "3:EMERGENCY_FLATTEN"
+      ],
+      "description": "Portfolio Liquidation Execution Urgency Tier (0..3)"
+    },
+    "a_halt_algorithm": {
+      "kind": "CATEGORICAL",
+      "type": "enum",
+      "sort": "HaltDirective",
+      "values": [
+        "CONTINUE_TRADING",
+        "SUSPEND_NEW_ORDERS",
+        "EMERGENCY_HALT"
+      ],
+      "description": "Algorithm Execution Master Operating Directive"
+    }
+  },
+  "action_witnesses": {
+    "a_execute_block": {
+      "n_market_1m_return_pct": "-599/100",
+      "n_book_depth_usd": "4999999/100",
+      "o_volatility_halt_stage": "0",
+      "o_latency_tier": "1",
+      "o_api_throttle_stage": "1",
+      "o_margin_call_severity": "0",
+      "n_order_book_imbalance_ratio": "13/20",
+      "n_dark_pool_divergence_bps": "1201/100",
+      "n_vwap_deviation_bps": "18",
+      "n_rsi_momentum_index": "2501/100"
+    },
+    "a_liquidate_all": {
+      "n_market_1m_return_pct": "-599/100",
+      "n_book_depth_usd": "0",
+      "o_volatility_halt_stage": "0",
+      "o_latency_tier": "3",
+      "o_api_throttle_stage": "0",
+      "o_margin_call_severity": "0",
+      "n_order_book_imbalance_ratio": "33/50",
+      "n_dark_pool_divergence_bps": "0",
+      "n_vwap_deviation_bps": "18",
+      "n_rsi_momentum_index": "2501/100"
+    },
+    "a_halt_algorithm": {
+      "n_market_1m_return_pct": "-6",
+      "n_book_depth_usd": "50000",
+      "o_volatility_halt_stage": "0",
+      "o_latency_tier": "0",
+      "o_api_throttle_stage": "0",
+      "o_margin_call_severity": "2",
+      "n_order_book_imbalance_ratio": "0",
+      "n_dark_pool_divergence_bps": "12",
+      "n_vwap_deviation_bps": "0",
+      "n_rsi_momentum_index": "0"
+    }
+  }
+}
