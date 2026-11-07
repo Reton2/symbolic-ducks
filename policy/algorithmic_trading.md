@@ -72,7 +72,7 @@ The firm's risk monitoring framework continuously tracks thirty-five independent
 The thirty-five primary surveillance indicators are synthesized at the first analytical layer into eleven specialized gateway evaluations. Each gateway isolates a distinct dimension of operational or market risk.
 
 ### Gateway 1: Execution Latency & VWAP Quality Score
-This continuous numerical score evaluates trade execution efficiency. A high score requires that the market is free from exchange volatility halts, the financial information exchange gateway maintains a dropped or severely disconnected state requiring emergency routing, the momentum indicator confirms price stability rather than sharp depletion, and execution drift from the volume-weighted average price remains tightly bounded.
+This continuous numerical score evaluates trade execution efficiency. A high score requires that the market is free from exchange volatility halts, the financial information exchange gateway maintains an active, fully connected online state, the momentum indicator confirms price stability rather than sharp depletion, and execution drift from the volume-weighted average price remains tightly bounded.
 
 ### Gateway 2: Microstructure Imbalance Tier
 This ordinal tier aggregates adverse market microstructure imbalances. An elevated risk tier is triggered if the order book imbalance ratio skews away from balanced thresholds, dark pool midpoint divergence widens beyond tolerance, realized execution slippage hits extreme levels, or the algorithm exhibits rapid runaway loop retries.
@@ -84,7 +84,7 @@ This continuous numerical metric captures predatory flow characteristics. It com
 A categorical gateway classifying proposed orders into valid, suspicious, or rejected. Rejection occurs when a proposed order represents an abnormally large percentage of average daily volume, broad regulatory market-wide circuit breakers remain inactive (preventing natural pauses), and news sentiment momentum exhibits an acute, volatile spike.
 
 ### Gateway 5: Gateway Throttle & Risk Alarm Tier
-An ordinal tier escalating system defenses whenever the cancellation-to-fill spoofing tier is safely unflagged, administrative kill switch authority has been actively armed by desk risk officers, the API gateway has entered severe throttling stages, or realized order slippage remains low enough to warrant aggressive order throttling without panic selling.
+An ordinal tier escalating system defenses whenever the cancellation-to-fill spoofing risk tier escalates, administrative kill switch authority has been actively armed by desk risk officers, the API gateway has entered severe throttling stages, or realized order slippage reaches extreme levels.
 
 ### Gateway 6: Capital Drawdown & Depth Depletion Metric
 A continuous numerical indicator reflecting combined capital and liquidity degradation. It activates when available book depth within five basis points dries up severely, intraday strategy drawdown reaches or breaches established risk limits, and net desk inventory has not yet breached hard caps (indicating active, capital-exposed positions).
@@ -126,7 +126,7 @@ An ordinal tier regulating automated quote throttling. It enforces rate limits w
 A continuous numerical score that magnifies market dislocation index values whenever real-time news sentiment velocity breaches acute statistical boundaries.
 
 ### Regime 17: Trading Desk Risk Execution Posture
-A categorical risk mandate classifying firm-wide execution into aggressive, neutral, defensive, or halted postures. Defensive or halted postures are automatically enforced if the execution latency score deteriorates, emergency kill switch authority is disarmed, minimum price variation rules are violated, or API gateways face severe throttling.
+A categorical risk mandate classifying firm-wide execution into aggressive, neutral, defensive, or halted postures. Defensive or halted postures are automatically enforced if the execution latency score deteriorates, emergency kill switch authority is actively armed or engaged, minimum price variation rules are violated, or API gateways face severe throttling.
 
 ### Regime 18: Liquidity Shock Vulnerability Tier
 An ordinal vulnerability ranking that escalates whenever pre-trade order validation status indicates suspicious or rejected orders, or whenever composite market liquidity stress tiers escalate out of calm conditions.
@@ -191,15 +191,11 @@ An ordinal severity tier ranging from passive to emergency. Urgency accelerates 
 
 The final layer of the policy mandate establishes three definitive, legally binding execution directives.
 
-```
-+--------------------------------------------------------------------------------------------------+
-|                                    MASTER EXECUTION DIRECTIVES                                   |
-+--------------------------------------------------------------------------------------------------+
-|  [Directive 33: Block Order Allocation]          ==> Continuous Capital Allocation (0.0% - 100%) |
-|  [Directive 34: Portfolio Liquidation Urgency]   ==> Ordinal Unwind Protocol (Tiers 0, 1, 2, 3)  |
-|  [Directive 35: Master Operating Directive]      ==> Categorical Governance State (CONTINUE/HALT)|
-+--------------------------------------------------------------------------------------------------+
-```
+| Directive | Protocol Nature | Target Output Range / States |
+| :--- | :--- | :--- |
+| **Directive 33: Block Order Allocation** | Continuous Numerical Protocol | Capital Allocation (0.0% – 100.0%) |
+| **Directive 34: Portfolio Liquidation Urgency** | Ordinal Protocol | Unwind Severity Tiers (0, 1, 2, 3) |
+| **Directive 35: Master Operating Directive** | Categorical Protocol | Governance State (Continue Trading, Suspend New Orders, Emergency Halt) |
 
 ### Directive 33: Block Trade Order Allocation (Numerical Protocol)
 * **Metric Nature**: Continuous Numerical Percentage ($0.0\% \dots 100.0\%$).
@@ -216,12 +212,12 @@ The final layer of the policy mandate establishes three definitive, legally bind
   * Under Tier 3 (Emergency Flatten), all algorithmic quoting is terminated, and execution algorithms must immediately sweep all available lit and dark book depth to liquidate all open risk positions to cash, regardless of execution slippage.
 
 ### Directive 35: Master Algorithmic Operating Directive (Categorical Protocol)
-* **Metric Nature**: Categorical Governance State (`CONTINUE_TRADING`, `SUSPEND_NEW_ORDERS`, `EMERGENCY_HALT`).
+* **Metric Nature**: Categorical Governance State (Continue Trading, Suspend New Orders, Emergency Halt).
 * **Governance Standard**: This directive represents the supreme administrative command governing algorithmic runtime processes. It evaluates the conjunction of the Algorithmic Governance Operating State, the Block Execution Readiness Rank, and the Composite Block Trade Capacity Score.
 * **Execution Constraint**:
-  * `CONTINUE_TRADING`: Authorizes full autonomous execution across all lit and dark venues when all underlying gateways confirm healthy operations.
-  * `SUSPEND_NEW_ORDERS`: Prevents new position origination while permitting resting passive orders to be filled or canceled; enforced during moderate infrastructure or volatility friction.
-  * `EMERGENCY_HALT`: Enforces an immediate, hard suspension of all firm algorithms. All active gateway connections are commanded to cancel all open resting orders instantly, reject all inbound order requests, and revoke algorithmic trading credentials across all exchange venues.
+  * **Continue Trading**: Authorizes full autonomous execution across all lit and dark venues when all underlying gateways confirm healthy operations.
+  * **Suspend New Orders**: Prevents new position origination while permitting resting passive orders to be filled or canceled; enforced during moderate infrastructure or volatility friction.
+  * **Emergency Halt**: Enforces an immediate, hard suspension of all firm algorithms. All active gateway connections are commanded to cancel all open resting orders instantly, reject all inbound order requests, and revoke algorithmic trading credentials across all exchange venues.
 
 ---
 
@@ -229,26 +225,14 @@ The final layer of the policy mandate establishes three definitive, legally bind
 
 In strict compliance with regulatory audit trail standards (SEC Rule 15c3-5 and MiFID II RTS 6), every automated action must be bidirectionally traceable back to its foundational surveillance indicators.
 
-```
-                                  LINEAGE ARCHITECTURE
-
- [35 Primary Surveillance Inputs]   ===> Market Microstructure, Infrastructure, Volatility, Compliance
-               |
-               v
- [11 Primary Risk Gateways]         ===> Execution Quality, Flow Toxicity, Imbalance, Infrastructure Health
-               |
-               v
- [9 Intermediate Regimes]          ===> Market Access, Routing Modes, Contagion Multipliers, Postures
-               |
-               v
- [7 Strategic Controls]            ===> Risk Firewalls, Operational States, Deleveraging Threat Levels
-               |
-               v
- [5 Executive Arbiters]            ===> Liquidation Triggers, Readiness Ranks, Block Capacity Scores
-               |
-               v
- [3 Master Directives]             ===> Sizing Allocation %, Liquidation Tier (0-3), Operating Directive
-```
+| Layer Level | Architecture Component | Core Analytical Domain & Governance Functions |
+| :--- | :--- | :--- |
+| **Layer 0** | 35 Primary Surveillance Indicators | Market Microstructure, Infrastructure Health, Volatility, Capital & Compliance |
+| **Layer 1** | 11 Primary Risk Gateways | Execution Quality, Flow Toxicity, Imbalance, Infrastructure & Power Health |
+| **Layer 2** | 9 Intermediate Risk Regimes | Market Access, Venue Routing Modes, Contagion Multipliers, Desk Postures |
+| **Layer 3** | 7 Strategic Risk Controls | Risk Firewalls, Operational Continuity States, Deleveraging Threat Levels |
+| **Layer 4** | 5 Executive Capacity Arbiters | Liquidation Triggers, Readiness Ranks, Composite Block Capacity Scores |
+| **Layer 5** | 3 Master Algorithmic Directives | Continuous Block Sizing %, Ordinal Liquidation Tier (0–3), Operating Directive |
 
 1. **Audit Trace for Block Order Allocation**:
    The allocation percentage is derived directly from Block Execution Readiness and Composite Block Capacity. These arbiters maintain full causal lineage through twenty-four intermediate derived nodes, anchored in thirty-three primary telemetry inputs including order book depth, bid-ask spreads, quote arrival rates, execution loop detectors, and benchmark correlations. An order cannot execute without an end-to-end mathematical proof of capacity across this lineage.
