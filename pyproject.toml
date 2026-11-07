@@ -1,0 +1,65 @@
+[project]
+name = "alpha"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.14.*"
+dependencies = [
+    "fastapi>=0.162.0",
+    "httpx>=0.28.1",
+    "numpy>=2.5.4",
+    "openai>=3.46.0",
+    "pydantic>=2.14.3",
+    "redis>=8.1.0",
+    "uvicorn>=0.54.0",
+    "z3-solver>=5.3.3.0",
+]
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+    "nbformat>=5.11.1",
+    "pre-commit>=4.7.0",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.4",
+]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501", # Let the formatter handle line length
+    "E712", # Comparison to True/False
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/faithful_worlds"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
