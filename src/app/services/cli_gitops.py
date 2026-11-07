@@ -1,95 +1,117 @@
+from __future__ import annotations
+
+import asyncio
 import json
+import logging
 import sys
 from pathlib import Path
 
-from app.control.html_exporter import export_standalone_html
-from app.control.nl_engine import sync_bundle_prose
-from app.control.smt_engine import Z3PolicyProver
-from app.data.runtime import GroundDataPlaneEngine
-from app.domains.catalogue import get_default_bundles
+from app.control.autoformalisation import DeepAutoformalizer
+from app.control.html_exporter import export_graph_html
+from app.control.smt_engine import DeepSMTSolverEngine
+from app.data.runtime import TopologicalDAGRuntime
+from app.mandate import AMM_QRM_2026_V5_TEXT
+from app.schemas.schemas import AutonomousPolicyGraph, GraphVerificationReport
+
+logger = logging.getLogger("app.services.cli_gitops")
 
 
-def main():
+def load_candidate_config() -> dict[str, float]:
+    """Loads parameter overrides from candidate_config.json."""
     config_path = Path("policies/candidate_config.json")
-    raw_cfg = (
-        json.loads(config_path.read_text())
-        if config_path.exists()
-        else {"domain_key": "quant_risk", "parameter_overrides": {}}
-    )
-    domain_key = raw_cfg.get("domain_key", "quant_risk")
-    overrides = raw_cfg.get("parameter_overrides", {})
+    if not config_path.is_file():
+        logger.info("No candidate_config.json found; running with default parameters")
+        return {}
+    try:
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+        overrides = data.get("parameter_overrides", {})
+        return {
+            k: float(v) for k, v in overrides.items() if isinstance(v, (int, float))
+        }
+    except Exception as err:
+        logger.warning(
+            "Failed to parse candidate_config.json (%s); using defaults", err
+        )
+        return {}
 
-    bundles = get_default_bundles()
-    base_bundle = bundles[domain_key].model_copy(deep=True)
-    cand_bundle = bundles[domain_key].model_copy(deep=True)
 
-    for k, val in overrides.items():
-        if k in cand_bundle.parameters:
-            cand_bundle.parameters[k].value = val
-    cand_bundle = sync_bundle_prose(cand_bundle)
-
-    prover = Z3PolicyProver(cand_bundle)
-    z3_res = prover.run_full_verification_suite()
-
-    engine = GroundDataPlaneEngine(base_bundle)
-    comp = engine.compare_bundles(cand_bundle)
-    b_m, c_m, d_m = comp["baseline"], comp["candidate"], comp["deltas"]
-
-    Path("policy_explainability_graph.html").write_text(
-        export_standalone_html(cand_bundle, z3_res)
-    )
-
-    status_str = (
-        "✅ VERIFIED"
-        if z3_res["overall_status"] == "VERIFIED"
-        else "❌ FAILED Z3 PROOF"
+def format_markdown_report(
+    graph: AutonomousPolicyGraph,
+    verification: GraphVerificationReport,
+    overrides: dict[str, float],
+    runtime_latency_us: float,
+) -> str:
+    """Formats an executive GitOps PR governance markdown report."""
+    status_icon = (
+        "✅ VERIFIED" if verification.status == "VERIFIED" else "❌ UNVERIFIED"
     )
     lines = [
-        f"### 🛡️ PolicyGuard Full-Circle GitOps Report — {status_str}",
-        f"**Domain Track:** `{cand_bundle.title}` (`{cand_bundle.bundle_id}`)",
+        f"### 🛡️ PolicyGuard Autonomous SMT GitOps Report — {status_icon}",
+        f"**Graph ID:** `{graph.graph_id}` | **Title:** `{graph.title}`",
+        f"**Discovered Variables:** `{len(graph.variables)}` | **Topological Equations:** `{len(graph.equations)}`",
         "",
-        "#### 1. Bidirectional Natural Language Policy Diff",
+        "#### 1. Candidate Parameter Configuration",
     ]
-    for b_p, c_p in zip(base_bundle.policies, cand_bundle.policies, strict=True):
-        if b_p.natural_language_text != c_p.natural_language_text:
-            lines.append(f"- **{c_p.policy_id} ({c_p.name}):**")
-            lines.append(f"  - **Baseline:** `{b_p.natural_language_text}`")
-            lines.append(f"  - **Candidate:** `{c_p.natural_language_text}`")
-        else:
-            lines.append(
-                f"- **{c_p.policy_id} ({c_p.name}):** *Unchanged* (`{c_p.natural_language_text}`)"
-            )
+    if overrides:
+        lines.append("| Parameter Key | Candidate PR Value |")
+        lines.append("| :--- | :--- |")
+        for k, v in overrides.items():
+            lines.append(f"| `{k}` | `{v}` |")
+    else:
+        lines.append("*Operating with inferred baseline parameters.*")
 
     lines.extend(
         [
             "",
-            "#### 2. Shadow Backtest Telemetry Deltas (N=1,500 Historical Replay)",
-            "| Metric | Baseline | Candidate PR | Delta |",
-            "| :--- | :--- | :--- | :--- |",
-            f"| **Blast Radius (Intercept %)** | {b_m['blast_radius_pct']}% | {c_m['blast_radius_pct']}% | `{d_m['blast_radius_pct_delta']:+.2f}%` |",
-            f"| **Anomaly / Fraud Recall** | {b_m['simulated_fraud_recall_pct']}% | {c_m['simulated_fraud_recall_pct']}% | `{d_m['fraud_recall_pct_delta']:+.2f}%` |",
-            f"| **False Positive Rate** | {b_m['false_positive_rate_pct']}% | {c_m['false_positive_rate_pct']}% | `{d_m['false_positive_pct_delta']:+.2f}%` |",
-            f"| **Hot-Path Latency (P50 / P99)** | {b_m['p50_latency_us']}µs / {b_m['p99_latency_us']}µs | {c_m['p50_latency_us']}µs / {c_m['p99_latency_us']}µs | `<10µs SLA` |",
-            "",
-            "#### 3. Z3 Formal Verification & Anti-Smurfing Audit",
+            "#### 2. Z3 SMT Formal Reachability Proofs",
+            f"- **Base Domain Consistency:** `{'SAT (Consistent)' if verification.consistent else 'UNSAT (Contradiction)'}`",
+            f"- **Evaluated Directives:** {len(verification.reachability_proofs)} state proofs",
+            f"- **Hot-Path DAG Evaluation Latency:** `{runtime_latency_us:.2f} µs`",
         ]
     )
-    if not z3_res["issues"]:
-        lines.append(
-            "- **Satisfiability, Axiom Bounds & Anti-Structuring:** `UNSAT` for exploits (Mathematically Verified)."
-        )
+
+    if verification.dead_state_warnings:
+        lines.append("\n**⚠️ Dead Logic Warnings:**")
+        for warn in verification.dead_state_warnings:
+            lines.append(f"- {warn}")
     else:
-        for iss in z3_res["issues"]:
-            lines.append(
-                f"- ❌ **{iss['type']} ({iss['policy_id']}):** {iss['detail']}"
-            )
+        lines.append(
+            "- ✅ **All output directive states proven mathematically reachable.**"
+        )
 
-    report = "\n".join(lines)
-    Path("pr_governance_report.md").write_text(report)
-    print(report)
+    return "\n".join(lines)
 
-    if z3_res["overall_status"] != "VERIFIED":
-        sys.exit(1)
+
+async def run_gitops_audit() -> int:
+    """Orchestrates autonomous autoformalization, Z3 SMT audit, and report generation."""
+    logger.info("Starting PolicyGuard Autonomous GitOps audit...")
+    overrides = load_candidate_config()
+
+    autoformalizer = DeepAutoformalizer.from_env()
+    graph = await autoformalizer.autoformalize_document(AMM_QRM_2026_V5_TEXT)
+
+    solver = DeepSMTSolverEngine(graph, overrides)
+    verification = solver.verify_full_graph()
+
+    runtime = TopologicalDAGRuntime(graph, overrides)
+    telemetry = runtime.generate_synthetic_telemetry()
+    eval_result = runtime.evaluate_telemetry(telemetry)
+
+    html_content = export_graph_html(graph, verification)
+    Path("policy_explainability_graph.html").write_text(html_content, encoding="utf-8")
+
+    report_md = format_markdown_report(
+        graph, verification, overrides, eval_result.latency_us
+    )
+    Path("pr_governance_report.md").write_text(report_md, encoding="utf-8")
+    print(report_md)
+
+    return 0 if verification.status == "VERIFIED" else 1
+
+
+def main() -> None:
+    exit_code = asyncio.run(run_gitops_audit())
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":
