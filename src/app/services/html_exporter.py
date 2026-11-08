@@ -11,7 +11,7 @@ from app.schemas import (
     PolicyDocumentBundle,
 )
 
-logger = logging.getLogger("app.control.html_exporter")
+logger = logging.getLogger(__name__)
 
 GRAPH_HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">

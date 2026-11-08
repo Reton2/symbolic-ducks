@@ -2,7 +2,6 @@ import logging
 
 from fastapi import APIRouter, Depends, WebSocket
 
-from app.control.smt_engine import DeepSMTSolverEngine
 from app.dependency.dependency import get_smt_solver
 from app.dependency.state import AppState, get_app_state
 from app.schemas import (
@@ -13,6 +12,7 @@ from app.schemas import (
     SolveForInputsRequest,
     VariableRole,
 )
+from app.services.smt.smt_engine import DeepSMTSolverEngine
 
 smt_router = APIRouter(prefix="/smt")
 

@@ -7,12 +7,6 @@ from collections import deque
 from collections.abc import Callable
 from typing import Any
 
-from app.control.smt_helpers import (
-    native_max,
-    native_min,
-    native_num_not,
-    native_ord_not,
-)
 from app.schemas import (
     AutonomousPolicyGraph,
     InferredVariable,
@@ -21,8 +15,14 @@ from app.schemas import (
     VariableRole,
     VariableSort,
 )
+from app.services.smt.smt_helpers import (
+    native_max,
+    native_min,
+    native_num_not,
+    native_ord_not,
+)
 
-logger = logging.getLogger("app.data.runtime")
+logger = logging.getLogger(__name__)
 
 
 class TopologicalDAGRuntime:

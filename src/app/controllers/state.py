@@ -3,10 +3,10 @@ import logging
 from fastapi import APIRouter, Depends
 from fastapi.responses import PlainTextResponse
 
-from app.control.smt_engine import DeepSMTSolverEngine
 from app.dependency.dependency import get_smt_solver
 from app.dependency.state import AppState, get_app_state
 from app.schemas import SystemStateResponse
+from app.services.smt.smt_engine import DeepSMTSolverEngine
 
 state_router = APIRouter(prefix="/state")
 

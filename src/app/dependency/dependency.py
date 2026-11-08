@@ -1,9 +1,9 @@
 from fastapi import Depends
 
-from app.control.autoformalisation import DeepAutoformalizer
-from app.control.smt_engine import DeepSMTSolverEngine
-from app.data.runtime import TopologicalDAGRuntime
 from app.dependency.state import AppState, get_app_state
+from app.services.autoformalisation.autoformalisation import DeepAutoformalizer
+from app.services.dag_runtime import TopologicalDAGRuntime
+from app.services.smt.smt_engine import DeepSMTSolverEngine
 
 
 async def get_autoformalizer(

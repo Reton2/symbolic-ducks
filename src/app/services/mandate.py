@@ -3,14 +3,10 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-logger = logging.getLogger("app.mandate")
+logger = logging.getLogger(__name__)
 
 
 def load_mandate_text() -> str:
-    """Loads the core algorithmic trading mandate policy markdown text.
-
-    Resolves path relative to repository root with explicit UTF-8 encoding.
-    """
     candidates = [
         Path(__file__).resolve().parents[3] / "policy" / "algorithmic_trading.md",
         Path("policy/algorithmic_trading.md"),

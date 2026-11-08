@@ -20,7 +20,6 @@ from z3 import (
     sat,
 )
 
-from app.control.smt_helpers import evaluate_z3_symbolic_expression
 from app.schemas import (
     AbductiveSolveResult,
     AbductiveSolveStatus,
@@ -40,16 +39,12 @@ from app.schemas import (
     VariableSort,
     VerificationStatus,
 )
+from app.services.smt.smt_helpers import evaluate_z3_symbolic_expression
 
-logger = logging.getLogger("app.control.smt_engine")
+logger = logging.getLogger(__name__)
 
 
 class DeepSMTSolverEngine:
-    """Enterprise Z3 SMT solver engine providing reachability proofs, abductive solving,
-
-    MaxSMT counterfactual search, and SMT-LIB 2.0 serialization for policy DAGs.
-    """
-
     def __init__(
         self,
         graph: AutonomousPolicyGraph,
@@ -156,7 +151,6 @@ class DeepSMTSolverEngine:
         return witness
 
     def export_smtlib2(self) -> str:
-        """Exports the full policy constraint topology to standard SMT-LIB 2.0 format."""
         s = Solver()
         s.add(*self._build_base_constraints(bind_parameters=True))
         return s.to_smt2()
@@ -167,10 +161,6 @@ class DeepSMTSolverEngine:
         target_cond: Any,
         target_state_label: str,
     ) -> DeadLogicDiagnostic:
-        """Diagnoses why an action state is unreachable, distinguishing between
-
-        Parameter Miscalibration, Wrong Rules (compiler bug), and Wrong Policy (mandate deadlock).
-        """
         # Step 1: Parameter Relaxation Check
         relaxed_base = self._build_base_constraints(bind_parameters=False)
         relaxed_solver = Solver()

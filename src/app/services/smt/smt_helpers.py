@@ -27,7 +27,7 @@ from z3 import (
     is_true,
 )
 
-logger = logging.getLogger("app.control.smt_helpers")
+logger = logging.getLogger(__name__)
 
 
 class TargetSortMode(StrEnum):

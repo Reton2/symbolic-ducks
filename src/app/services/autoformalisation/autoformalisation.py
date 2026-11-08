@@ -40,13 +40,6 @@ from z3 import (
     sat,
 )
 
-from app.control.smt_helpers import (
-    TargetSortMode,
-    destruct_z3_expr,
-    evaluate_z3_symbolic_expression,
-    extract_z3_dependencies,
-    z3_if,
-)
 from app.schemas import (
     AutonomousPolicyGraph,
     ConceptModality,
@@ -54,6 +47,13 @@ from app.schemas import (
     InferredVariable,
     VariableRole,
     VariableSort,
+)
+from app.services.smt.smt_helpers import (
+    TargetSortMode,
+    destruct_z3_expr,
+    evaluate_z3_symbolic_expression,
+    extract_z3_dependencies,
+    z3_if,
 )
 
 logger = logging.getLogger(__name__)
