@@ -21,10 +21,21 @@
         }
       }
     },
-    "/api/state": {
-      "get": {
-        "summary": "Get System State",
-        "operationId": "get_system_state_api_state_get",
+    "/api/document/ingest": {
+      "post": {
+        "summary": "Ingest Unstructured Document",
+        "description": "Ingests unstructured policy text, infers causal graph topology, and hot-swaps Z3.",
+        "operationId": "ingest_unstructured_document_api_document_ingest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestDocumentRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -32,6 +43,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SystemStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -80,7 +101,6 @@
     "/api/smt/solve-inputs": {
       "post": {
         "summary": "Solve For Inputs Endpoint",
-        "description": "Abductive Z3 solving: synthesizes foundational telemetry values from desired target constraints.",
         "operationId": "solve_for_inputs_endpoint_api_smt_solve_inputs_post",
         "requestBody": {
           "content": {
@@ -119,7 +139,6 @@
     "/api/smt/counterfactual": {
       "post": {
         "summary": "Counterfactual Endpoint",
-        "description": "MaxSMT counterfactual search: finds minimal input interventions.",
         "operationId": "counterfactual_endpoint_api_smt_counterfactual_post",
         "requestBody": {
           "content": {
@@ -155,6 +174,42 @@
         }
       }
     },
+    "/api/state": {
+      "get": {
+        "summary": "Get System State",
+        "operationId": "get_system_state_api_state_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/state/smtlib2": {
+      "get": {
+        "summary": "Download Smtlib2",
+        "operationId": "download_smtlib2_api_state_smtlib2_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/telemetry/evaluate": {
       "post": {
         "summary": "Evaluate Telemetry Endpoint",
@@ -177,63 +232,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TelemetryEvaluationResult"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/smtlib2": {
-      "get": {
-        "summary": "Download Smtlib2",
-        "operationId": "download_smtlib2_api_smtlib2_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/ingest-document": {
-      "post": {
-        "summary": "Ingest Unstructured Document",
-        "description": "Ingests unstructured policy text, infers causal graph topology, and hot-swaps Z3.",
-        "operationId": "ingest_unstructured_document_api_ingest_document_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IngestDocumentRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SystemStateResponse"
                 }
               }
             }
@@ -286,8 +284,7 @@
         "required": [
           "status"
         ],
-        "title": "AbductiveSolveResult",
-        "description": "Result of solving backwards from target states to primary input variables."
+        "title": "AbductiveSolveResult"
       },
       "AbductiveSolveStatus": {
         "type": "string",
@@ -295,8 +292,7 @@
           "SATISFIABLE",
           "UNSATISFIABLE"
         ],
-        "title": "AbductiveSolveStatus",
-        "description": "Outcome status of abductive backward input synthesis."
+        "title": "AbductiveSolveStatus"
       },
       "AutonomousPolicyGraph": {
         "properties": {
@@ -385,8 +381,7 @@
           "previous_value",
           "required_value"
         ],
-        "title": "ChangedInputSpec",
-        "description": "Minimal modification required on a primary input to reach counterfactual goal."
+        "title": "ChangedInputSpec"
       },
       "ConstraintOperator": {
         "type": "string",
@@ -398,8 +393,7 @@
           "<",
           "<="
         ],
-        "title": "ConstraintOperator",
-        "description": "Comparison operator applied to target variables during abductive solving."
+        "title": "ConstraintOperator"
       },
       "CounterfactualRequest": {
         "properties": {
@@ -453,8 +447,7 @@
         "required": [
           "status"
         ],
-        "title": "CounterfactualResult",
-        "description": "Max-SMT optimization result identifying minimal primary input deviations."
+        "title": "CounterfactualResult"
       },
       "CounterfactualStatus": {
         "type": "string",
@@ -462,8 +455,81 @@
           "COUNTERFACTUAL_FOUND",
           "UNSAT"
         ],
-        "title": "CounterfactualStatus",
-        "description": "Outcome status of MaxSMT counterfactual minimal repair search."
+        "title": "CounterfactualStatus"
+      },
+      "DeadLogicClassification": {
+        "type": "string",
+        "enum": [
+          "PARAMETER_MISCALIBRATION",
+          "WRONG_RULE_COMPILER",
+          "WRONG_POLICY_MANDATE"
+        ],
+        "title": "DeadLogicClassification"
+      },
+      "DeadLogicDiagnostic": {
+        "properties": {
+          "target_variable": {
+            "type": "string",
+            "title": "Target Variable"
+          },
+          "human_name": {
+            "type": "string",
+            "title": "Human Name"
+          },
+          "target_state": {
+            "type": "string",
+            "title": "Target State"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/DeadLogicClassification"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "conflicting_equation_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Conflicting Equation Ids"
+          },
+          "conflicting_sentence_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Conflicting Sentence Ids"
+          },
+          "conflicting_sentences_text": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Conflicting Sentences Text"
+          },
+          "suggested_remediation": {
+            "type": "string",
+            "title": "Suggested Remediation",
+            "default": ""
+          },
+          "relaxed_parameter_solutions": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Relaxed Parameter Solutions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_variable",
+          "human_name",
+          "target_state",
+          "classification",
+          "explanation"
+        ],
+        "title": "DeadLogicDiagnostic"
       },
       "EvaluateTelemetryRequest": {
         "properties": {
@@ -486,8 +552,7 @@
           }
         },
         "type": "object",
-        "title": "EvaluateTelemetryRequest",
-        "description": "Custom input telemetry values submitted from the frontend for DAG evaluation."
+        "title": "EvaluateTelemetryRequest"
       },
       "GraphVerificationReport": {
         "properties": {
@@ -497,6 +562,21 @@
           "consistent": {
             "type": "boolean",
             "title": "Consistent"
+          },
+          "is_dag_consistent": {
+            "type": "boolean",
+            "title": "Is Dag Consistent",
+            "default": true
+          },
+          "reachable_count": {
+            "type": "integer",
+            "title": "Reachable Count",
+            "default": 0
+          },
+          "dead_count": {
+            "type": "integer",
+            "title": "Dead Count",
+            "default": 0
           },
           "dead_state_warnings": {
             "items": {
@@ -518,8 +598,7 @@
           "status",
           "consistent"
         ],
-        "title": "GraphVerificationReport",
-        "description": "Formal audit report proving base satisfiability and absence of dead states."
+        "title": "GraphVerificationReport"
       },
       "HTTPValidationError": {
         "properties": {
@@ -553,8 +632,7 @@
           },
           "smt_expression": {
             "type": "string",
-            "title": "Smt Expression",
-            "description": "Valid Z3 symbolic formula using v['var_id']"
+            "title": "Smt Expression"
           },
           "natural_language_logic": {
             "type": "string",
@@ -575,8 +653,7 @@
           "target_var",
           "smt_expression"
         ],
-        "title": "InferredEquation",
-        "description": "A Z3 symbolic equation synthesized by aggregating all sentences governing `target_var`."
+        "title": "InferredEquation"
       },
       "InferredVariable": {
         "properties": {
@@ -594,19 +671,16 @@
           "in_degree": {
             "type": "integer",
             "title": "In Degree",
-            "description": "Number of upstream concepts this variable depends on",
             "default": 0
           },
           "out_degree": {
             "type": "integer",
             "title": "Out Degree",
-            "description": "Number of downstream concepts that depend on this variable",
             "default": 0
           },
           "layer_index": {
             "type": "integer",
             "title": "Layer Index",
-            "description": "Topological depth: 0 for deg-(v)==0 inputs, K for sinks",
             "default": 0
           },
           "sort": {
@@ -656,8 +730,7 @@
               "type": "integer"
             },
             "type": "array",
-            "title": "Source Sentence Ids",
-            "description": "Sentence indices anywhere in the text that reference/define this entity"
+            "title": "Source Sentence Ids"
           },
           "source_excerpts": {
             "items": {
@@ -674,8 +747,7 @@
           "role",
           "sort"
         ],
-        "title": "InferredVariable",
-        "description": "An entity autonomously discovered and resolved across unordered sentences."
+        "title": "InferredVariable"
       },
       "IngestDocumentRequest": {
         "properties": {
@@ -712,6 +784,16 @@
           "reachable": {
             "type": "boolean",
             "title": "Reachable"
+          },
+          "diagnostic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeadLogicDiagnostic"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -721,8 +803,7 @@
           "target_state",
           "reachable"
         ],
-        "title": "ReachabilityProof",
-        "description": "Proof record for an output state reachable under active parameter values."
+        "title": "ReachabilityProof"
       },
       "SolveForInputsRequest": {
         "properties": {
@@ -769,8 +850,7 @@
           }
         },
         "type": "object",
-        "title": "SolvedModelWitness",
-        "description": "Separated variable assignments grouped by their topological graph role."
+        "title": "SolvedModelWitness"
       },
       "SystemStateResponse": {
         "properties": {
@@ -798,8 +878,7 @@
           "graph",
           "verification"
         ],
-        "title": "SystemStateResponse",
-        "description": "Full system state response returned by state query and update endpoints."
+        "title": "SystemStateResponse"
       },
       "TargetConstraintSpec": {
         "properties": {
@@ -829,8 +908,7 @@
         "required": [
           "val"
         ],
-        "title": "TargetConstraintSpec",
-        "description": "User-specified constraint applied during abductive input synthesis."
+        "title": "TargetConstraintSpec"
       },
       "TelemetryEvaluationResult": {
         "properties": {
@@ -874,8 +952,7 @@
         "required": [
           "latency_us"
         ],
-        "title": "TelemetryEvaluationResult",
-        "description": "High-frequency evaluation result produced by the topological DAG runtime."
+        "title": "TelemetryEvaluationResult"
       },
       "TelemetryOutputDirective": {
         "properties": {
@@ -908,8 +985,7 @@
           "value",
           "label"
         ],
-        "title": "TelemetryOutputDirective",
-        "description": "Concrete evaluated output directive state with human-readable label."
+        "title": "TelemetryOutputDirective"
       },
       "UpdateParamsRequest": {
         "properties": {
@@ -972,8 +1048,7 @@
           "OUTPUT",
           "PARAMETER"
         ],
-        "title": "VariableRole",
-        "description": "Topological graph-theoretic role of a policy variable."
+        "title": "VariableRole"
       },
       "VariableSolvedState": {
         "properties": {
@@ -1011,8 +1086,7 @@
           "value",
           "formatted"
         ],
-        "title": "VariableSolvedState",
-        "description": "Structured concrete valuation of a variable extracted from a Z3 SAT model."
+        "title": "VariableSolvedState"
       },
       "VariableSort": {
         "type": "string",
@@ -1021,8 +1095,7 @@
           "int",
           "bool"
         ],
-        "title": "VariableSort",
-        "description": "First-order logic sort representation in Z3 SMT solver."
+        "title": "VariableSort"
       },
       "VerificationStatus": {
         "type": "string",
@@ -1030,8 +1103,7 @@
           "VERIFIED",
           "DEAD_LOGIC_DETECTED"
         ],
-        "title": "VerificationStatus",
-        "description": "Formal proof outcome for overall policy graph verification."
+        "title": "VerificationStatus"
       }
     }
   }
