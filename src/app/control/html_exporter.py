@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any
 
-from app.schemas.schemas import (
+from app.schemas import (
     AutonomousPolicyGraph,
     GraphVerificationReport,
     LogicalGroupNode,

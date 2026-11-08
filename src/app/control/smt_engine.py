@@ -21,7 +21,7 @@ from z3 import (
 )
 
 from app.control.smt_helpers import evaluate_z3_symbolic_expression
-from app.schemas.schemas import (
+from app.schemas import (
     AbductiveSolveResult,
     AbductiveSolveStatus,
     AutonomousPolicyGraph,

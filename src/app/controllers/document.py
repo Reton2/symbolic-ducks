@@ -6,7 +6,7 @@ from app.control.autoformalisation import DeepAutoformalizer
 from app.controllers.state import get_system_state
 from app.dependency.dependency import get_autoformalizer
 from app.dependency.state import AppState, get_app_state
-from app.schemas.schemas import IngestDocumentRequest, SystemStateResponse, VariableRole
+from app.schemas import IngestDocumentRequest, SystemStateResponse, VariableRole
 
 document_router = APIRouter(prefix="/document")
 

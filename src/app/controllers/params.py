@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from app.controllers.state import get_system_state
 from app.dependency.state import AppState, get_app_state
-from app.schemas.schemas import SystemStateResponse, UpdateParamsRequest
+from app.schemas import SystemStateResponse, UpdateParamsRequest
 
 params_router = APIRouter(prefix="/params")
 

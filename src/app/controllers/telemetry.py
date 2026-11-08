@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, WebSocket
 
 from app.dependency.state import AppState, get_app_state
-from app.schemas.schemas import EvaluateTelemetryRequest, TelemetryEvaluationResult
+from app.schemas import EvaluateTelemetryRequest, TelemetryEvaluationResult
 
 telemetry_router = APIRouter(prefix="/telemetry")
 

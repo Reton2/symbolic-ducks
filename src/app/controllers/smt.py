@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, WebSocket
 from app.control.smt_engine import DeepSMTSolverEngine
 from app.dependency.dependency import get_smt_solver
 from app.dependency.state import AppState, get_app_state
-from app.schemas.schemas import (
+from app.schemas import (
     AbductiveSolveResult,
     AbductiveSolveStatus,
     CounterfactualRequest,

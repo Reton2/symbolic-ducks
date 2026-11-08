@@ -47,7 +47,7 @@ from app.control.smt_helpers import (
     extract_z3_dependencies,
     z3_if,
 )
-from app.schemas.schemas import (
+from app.schemas import (
     AutonomousPolicyGraph,
     ConceptModality,
     InferredEquation,
@@ -56,31 +56,8 @@ from app.schemas.schemas import (
     VariableSort,
 )
 
-logger = logging.getLogger("app.control.autoformalisation")
+logger = logging.getLogger(__name__)
 
-
-def configure_logger(level_name: str = "INFO") -> None:
-    """Ensure the module logger has an active console StreamHandler so INFO/DEBUG
-
-    messages are visible in the terminal even without root basicConfig.
-    """
-    numeric_level = getattr(logging, level_name.upper(), logging.INFO)
-    logger.setLevel(numeric_level)
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        handler.setLevel(numeric_level)
-        handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s [%(levelname)s] [%(name)s]: %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-        )
-        logger.addHandler(handler)
-        logger.propagate = False
-
-
-# Initialize console logging on import
-configure_logger(os.getenv("LOG_LEVEL", "INFO"))
 
 SENTENCE_MAP_PROMPT = """You are a Format-Blind Semantic Dependency Extractor for Multi-Modal Z3 Policy Graphs.
 You will receive an unordered list of numbered sentences from a policy document.
@@ -133,48 +110,6 @@ W_hat = []
 W_hat.append(<target_id> == <z3_expr>)
 ```
 Output ONLY valid Python code."""
-
-INTRO_VERBS = (
-    r"(?:is\s+a|is\s+an|tracks|measures|evaluates|aggregates|captures|classifies|"
-    r"monitors|determines|quantifies|regulates|magnifies|establishes|represents|dictates)"
-)
-INTRO_PATTERN = re.compile(
-    rf"^([A-Z][A-Za-z0-9\-\s/()&,]{{3,65}}?)\s+(?::\s*|\bis\b\s+|{INTRO_VERBS}\b)(.+)$"
-)
-EXCLUDE_SUBJECT_PREFIXES = re.compile(
-    r"^(?:This|The|An|A|It|These|Under|In|Achieving|Full|High|Rejection|Access|Urgency|Feasibility|Prohibition)\b"
-)
-CAUSAL_PATTERN = re.compile(
-    r"\b(?:requires\s+that|is\s+triggered\s+if|combines|occurs\s+when|whenever|activates\s+when|"
-    r"compounds|escalates\s+when|is\s+declared\s+if|evaluates|monitors|magnifies|enforced\s+if|"
-    r"enforced\s+when|advances\s+toward|initiated\s+whenever|computed\s+as|determined\s+by|"
-    r"conjunction\s+of|maximum\s+across|minimum\s+of)\b",
-    flags=re.IGNORECASE,
-)
-STOP_WORDS = frozenset(
-    {
-        "this",
-        "that",
-        "with",
-        "from",
-        "into",
-        "when",
-        "where",
-        "while",
-        "under",
-        "across",
-        "between",
-        "tier",
-        "score",
-        "mode",
-        "state",
-        "level",
-        "metric",
-        "index",
-        "stage",
-        "status",
-    }
-)
 
 
 def extract_json_payload(raw_content: str) -> str:
@@ -1565,7 +1500,6 @@ class DeepAutoformalizer:
         cache: PolicyGraphCache | None = None,
     ) -> None:
         self.config = config or AutoformalizerConfig.from_env()
-        configure_logger(self.config.log_level)
 
         if client is not None:
             self.client: AsyncOpenAI | None = client

@@ -8,7 +8,7 @@ from fastapi import HTTPException, WebSocket
 from app.control.autoformalisation import DeepAutoformalizer
 from app.data.runtime import TopologicalDAGRuntime
 from app.mandate import AMM_QRM_2026_V5_TEXT
-from app.schemas.schemas import AutonomousPolicyGraph, VariableRole
+from app.schemas import AutonomousPolicyGraph, VariableRole
 
 logger = logging.getLogger(__name__)
 

@@ -13,7 +13,7 @@ from app.control.smt_helpers import (
     native_num_not,
     native_ord_not,
 )
-from app.schemas.schemas import (
+from app.schemas import (
     AutonomousPolicyGraph,
     InferredVariable,
     TelemetryEvaluationResult,
