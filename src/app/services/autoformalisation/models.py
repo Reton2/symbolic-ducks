@@ -1,279 +1,289 @@
-from typing import Any
+from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from enum import StrEnum
+from typing import Any, Literal
 
-from app.schemas import (
-    VariableSort,
-)
+from pydantic import BaseModel, Field, model_validator
+
+
+class Modality(StrEnum):
+    NUMERICAL = "numerical"
+    ORDINAL = "ordinal"
+    CATEGORICAL = "categorical"
+
+
+class Z3SortType(StrEnum):
+    REAL = "real"
+    INT = "int"
+
+
+class EntityRole(StrEnum):
+    INPUT = "input"
+    INTERMEDIATE = "intermediate"
+    OUTPUT = "output"
+
+
+class DiscreteStateMapping(BaseModel):
+    """Maps an ordered discrete tier/state to its index and unified risk intensity."""
+
+    state_index: int = Field(
+        description="0-based integer index (0 = lowest/nominal, N = highest/critical)"
+    )
+    state_label: str = Field(description="Exact name of the state or tier from text")
+    intensity_score: float = Field(
+        description="Mapped intensity on the 0.0 to 100.0 scale"
+    )
+
+
+class NumericalThresholdMapping(BaseModel):
+    """Defines how a continuous numerical input maps to 0..100 risk intensity."""
+
+    comparison_op: Literal[">=", ">", "<=", "<", "=="] = Field(
+        description="Operator checking if metric breaches its risk threshold"
+    )
+    threshold_value: float = Field(description="Threshold cutoff number")
+    breach_intensity: float = Field(
+        description="Risk intensity when threshold holds (typically 100.0)"
+    )
+    baseline_intensity: float = Field(
+        description="Baseline risk intensity when within bounds"
+    )
+    inverted_vulnerability_intensity: float | None = Field(
+        default=None,
+        description="Optional inverted vulnerability score when non-breached",
+    )
+
+
+class PolicyEntity(BaseModel):
+    """Canonical representation of any variable in the policy document."""
+
+    canonical_id: str = Field(description="snake_case identifier")
+    original_name: str = Field(description="Exact human-readable name in text")
+    role: EntityRole = Field(description="Entity role: input, intermediate, or output")
+    modality: Modality = Field(description="Modality: numerical, ordinal, categorical")
+    z3_sort: Z3SortType = Field(description="Z3 sort: real or int")
+    min_bound: float = Field(default=0.0, description="Minimum valid value")
+    max_bound: float = Field(default=100.0, description="Maximum valid value")
+    discrete_states: list[DiscreteStateMapping] = Field(
+        default_factory=list, description="Ordered states if ordinal/categorical"
+    )
+    numerical_mapping: NumericalThresholdMapping | None = Field(
+        default=None, description="Threshold mapping if foundational indicator"
+    )
+
+
+class SemanticClause(BaseModel):
+    """A self-contained logical statement extracted from raw policy text."""
+
+    clause_id: str = Field(description="Unique identifier like clause_001")
+    clause_type: Literal[
+        "global_axiom",
+        "entity_definition",
+        "derivation_rule",
+        "global_framework",
+        "other",
+    ] = Field(description="Category of clause")
+    normalized_proposition: str = Field(
+        description="Self-contained statement with pronouns resolved"
+    )
+    source_excerpt: str = Field(description="Verbatim excerpt from raw text")
+    mentioned_entity_names: list[str] = Field(
+        default_factory=list, description="Entities mentioned in clause"
+    )
+
+
+class ClauseDecompositionBatch(BaseModel):
+    clauses: list[SemanticClause] = Field(default_factory=list)
+
+
+class GlobalPolicyFramework(BaseModel):
+    """Captures document-wide calculation framework and scale conventions."""
+
+    scale_min: float = Field(default=0.0)
+    scale_max: float = Field(default=100.0)
+    inversion_formula_description: str = Field(
+        default="100.0 minus current risk intensity"
+    )
+    simultaneous_and_rule_description: str = Field(default="Lowest active intensity")
+    escalation_or_rule_description: str = Field(default="Highest triggered intensity")
+    standard_tier_alignments: str = Field(
+        default="3-tier: 0/50/100, 4-tier: 0/33.3/66.7/100, 5-tier: 0/25/50/75/100"
+    )
+
+
+class OntologyExtractionResult(BaseModel):
+    global_framework: GlobalPolicyFramework
+    entities: list[PolicyEntity] = Field(default_factory=list)
+
+
+class EntityDependencyLink(BaseModel):
+    """Maps a derived entity to the clauses and inputs governing its outcome."""
+
+    target_canonical_id: str = Field(description="Canonical ID of target entity")
+    governing_clause_ids: list[str] = Field(default_factory=list)
+    input_canonical_ids: list[str] = Field(default_factory=list)
+    reasoning_summary: str = Field(default="")
+
+
+class DependencyMappingBatch(BaseModel):
+    links: list[EntityDependencyLink] = Field(default_factory=list)
+
+
+LogicExprKind = Literal[
+    "literal_real",
+    "literal_int",
+    "var_ref",
+    "var_intensity",
+    "complement_100",
+    "compare",
+    "and_op",
+    "or_op",
+    "not_op",
+    "ite",
+    "min_pool",
+    "max_pool",
+]
+
+
+class LogicExpr(BaseModel):
+    """Recursive, strongly-typed AST node representing a Z3 expression."""
+
+    kind: LogicExprKind
+    float_val: float | None = None
+    int_val: int | None = None
+    var_id: str | None = None
+    invert_intensity: bool = False
+    comp_op: Literal["==", "!=", "<", "<=", ">", ">="] | None = None
+    left: LogicExpr | None = None
+    right: LogicExpr | None = None
+    args: list[LogicExpr] | None = None
+    cond: LogicExpr | None = None
+    then_branch: LogicExpr | None = None
+    else_branch: LogicExpr | None = None
+
+
+LogicExpr.model_rebuild()
+
+
+class EmpiricalTestCase(BaseModel):
+    """Anchor test case extracted from policy prose to verify synthesized rule."""
+
+    description: str
+    input_assignments: dict[str, float | int]
+    expected_target_value: float | int
+
+
+class SynthesizedNodeRule(BaseModel):
+    """Synthesized AST rule and verification test cases for a single target."""
+
+    target_canonical_id: str
+    reasoning_trace: str
+    expr_ast: LogicExpr
+    continuous_intensity_ast: LogicExpr | None = None
+    test_cases: list[EmpiricalTestCase] = Field(default_factory=list)
 
 
 class RawSentence(BaseModel):
-    """Immutable representation of a segmented sentence."""
+    """Segmented sentence unit with document position index."""
 
     index: int
     text: str
 
 
 class ResolvedConcept(BaseModel):
-    """Unified policy concept resolved across all sentences."""
+    """Resolved concept specification matching graph variable contract."""
 
     cid: str
     human_name: str
-    sort: VariableSort
-    ordinal_levels: dict[int, str] | None = None
+    sort: str = "real"
     min_bound: float = 0.0
     max_bound: float = 100.0
-    default_value: float = 0.0
-    sentence_ids: set[int] = Field(default_factory=set)
+    default_value: float | int | bool = 0.0
+    ordinal_levels: dict[int, str] | None = None
+    sentence_ids: list[int] = Field(default_factory=list)
     source_excerpts: list[str] = Field(default_factory=list)
 
 
-class SynthesizedParamSpec(BaseModel):
-    """Schema for latent parameter minted during equation synthesis."""
-
-    var_id: str = ""
-    human_name: str = ""
-    sort: VariableSort = VariableSort.REAL
-    min_bound: float = 0.0
-    max_bound: float = 100.0
-    default_value: float = 10.0
-    source_sentence_ids: list[int] = Field(default_factory=list)
-
-    @field_validator("sort", mode="before")
-    @classmethod
-    def coerce_param_sort(cls, v: Any) -> VariableSort:
-        if isinstance(v, VariableSort):
-            return v
-        if not v or str(v).lower() not in ("real", "int", "bool"):
-            return VariableSort.REAL
-        return VariableSort(str(v).lower())
-
-    @field_validator("min_bound", mode="before")
-    @classmethod
-    def coerce_min(cls, v: Any) -> float:
-        if v is None:
-            return 0.0
-        try:
-            return float(v)
-        except (ValueError, TypeError):
-            return 0.0
-
-    @field_validator("max_bound", mode="before")
-    @classmethod
-    def coerce_max(cls, v: Any) -> float:
-        if v is None:
-            return 100.0
-        try:
-            return float(v)
-        except (ValueError, TypeError):
-            return 100.0
-
-    @field_validator("default_value", mode="before")
-    @classmethod
-    def coerce_default(cls, v: Any) -> float:
-        if v is None:
-            return 10.0
-        try:
-            return float(v)
-        except (ValueError, TypeError):
-            return 10.0
-
-    @field_validator("source_sentence_ids", mode="before")
-    @classmethod
-    def coerce_sids(cls, v: Any) -> list[int]:
-        if v is None:
-            return []
-        if isinstance(v, (int, str)):
-            try:
-                return [int(v)]
-            except (ValueError, TypeError):
-                return []
-        res = []
-        for x in v:
-            try:
-                if x is not None:
-                    res.append(int(x))
-            except (ValueError, TypeError):
-                pass
-        return res
-
-
-class SynthesizedEquationSpec(BaseModel):
-    equation_id: str = ""
-    target_var: str = ""
-    dependencies: list[str] = Field(default_factory=list)
-    smt_expression: str = ""
-    natural_language_logic: str = ""
-    source_sentence_ids: list[int] = Field(default_factory=list)
-
-    @field_validator("dependencies", mode="before")
-    @classmethod
-    def coerce_deps(cls, v: Any) -> list[str]:
-        if v is None:
-            return []
-        if isinstance(v, str):
-            return [v]
-        return [str(item) for item in v if item is not None]
-
-    @field_validator("source_sentence_ids", mode="before")
-    @classmethod
-    def coerce_eq_sids(cls, v: Any) -> list[int]:
-        if v is None:
-            return []
-        if isinstance(v, (int, str)):
-            try:
-                return [int(v)]
-            except (ValueError, TypeError):
-                return []
-        res = []
-        for x in v:
-            try:
-                if x is not None:
-                    res.append(int(x))
-            except (ValueError, TypeError):
-                pass
-        return res
-
-    @field_validator("natural_language_logic", "smt_expression", mode="before")
-    @classmethod
-    def coerce_str_fields(cls, v: Any) -> str:
-        return "" if v is None else str(v)
-
-
-class EquationSynthesisResponse(BaseModel):
-    """Strict schema contract for the equation synthesis LLM phase."""
-
-    parameters: dict[str, SynthesizedParamSpec] = Field(default_factory=dict)
-    equations: dict[str, SynthesizedEquationSpec] = Field(default_factory=dict)
-
-    @field_validator("parameters", mode="before")
-    @classmethod
-    def coerce_params_dict(cls, v: Any) -> dict[str, Any]:
-        if v is None:
-            return {}
-        if isinstance(v, list):
-            res = {}
-            for item in v:
-                if isinstance(item, dict):
-                    pid = item.get("var_id") or item.get("id") or f"param_{len(res)}"
-                    res[pid] = item
-            return res
-        return v
-
-    @field_validator("equations", mode="before")
-    @classmethod
-    def coerce_eqs_dict(cls, v: Any) -> dict[str, Any]:
-        if v is None:
-            return {}
-        if isinstance(v, list):
-            res = {}
-            for item in v:
-                if isinstance(item, dict):
-                    tid = (
-                        item.get("target_var")
-                        or item.get("target_id")
-                        or f"eq_{len(res)}"
-                    )
-                    res[tid] = item
-            return res
-        return v
-
-
 class CausalLink(BaseModel):
-    """Directed dependency link extracted between policy concepts."""
+    """Directed dependency link between target and parent entities."""
 
     target_id: str
     parent_ids: list[str] = Field(default_factory=list)
     logic_summary: str = ""
-    qualitative_thresholds: list[str] = Field(default_factory=list)
     sentence_id: int = 0
-
-    @field_validator("parent_ids", "qualitative_thresholds", mode="before")
-    @classmethod
-    def coerce_list(cls, v: Any) -> list[str]:
-        if v is None:
-            return []
-        if isinstance(v, str):
-            return [v]
-        return [str(item) for item in v if item is not None]
-
-    @field_validator("sentence_id", mode="before")
-    @classmethod
-    def coerce_sentence_id(cls, v: Any) -> int:
-        if v is None:
-            return 0
-        try:
-            return int(v)
-        except (ValueError, TypeError):
-            return 0
-
-    @field_validator("logic_summary", mode="before")
-    @classmethod
-    def coerce_logic_summary(cls, v: Any) -> str:
-        return "" if v is None else str(v)
 
 
 class ExtractedEntity(BaseModel):
-    """Entity schema extracted from an LLM sentence batch with resilient coercion."""
+    """Coerces loose LLM JSON outputs into strict schema."""
 
     id: str
-    name: str = ""
-    sort: VariableSort = VariableSort.REAL
+    human_name: str = ""
+    sort: str = "real"
     min_bound: float = 0.0
     max_bound: float = 100.0
+    default_value: float | int | bool = 0.0
     ordinal_levels: dict[int, str] | None = None
 
-    @field_validator("sort", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def coerce_sort(cls, v: Any) -> VariableSort:
-        if isinstance(v, VariableSort):
-            return v
-        if not v or str(v).lower() not in ("real", "int", "bool"):
-            return VariableSort.REAL
-        return VariableSort(str(v).lower())
-
-    @field_validator("min_bound", mode="before")
-    @classmethod
-    def coerce_min_bound(cls, v: Any) -> float:
-        if v is None:
-            return 0.0
-        try:
-            return float(v)
-        except (ValueError, TypeError):
-            return 0.0
-
-    @field_validator("max_bound", mode="before")
-    @classmethod
-    def coerce_max_bound(cls, v: Any) -> float:
-        if v is None:
-            return 100.0
-        try:
-            return float(v)
-        except (ValueError, TypeError):
-            return 100.0
-
-    @field_validator("ordinal_levels", mode="before")
-    @classmethod
-    def coerce_ordinal_levels(cls, v: Any) -> dict[int, str] | None:
-        if v is None:
-            return None
-        if isinstance(v, list):
-            return {i: str(item) for i, item in enumerate(v)}
-        if isinstance(v, dict):
-            return {int(k): str(val) for k, val in v.items()}
-        return None
-
-    @model_validator(mode="after")
-    def normalize_bounds(self) -> "ExtractedEntity":
-        if self.ordinal_levels:
-            if self.max_bound == 100.0 or self.max_bound <= self.min_bound:
-                self.max_bound = float(len(self.ordinal_levels) - 1)
-            self.sort = "int"
-        return self
+    def _coerce_fields(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        res = dict(data)
+        if "id" not in res and "cid" in res:
+            res["id"] = res["cid"]
+        if "human_name" not in res or not res["human_name"]:
+            res["human_name"] = str(res.get("id", "")).replace("_", " ").title()
+        ord_levels = res.get("ordinal_levels")
+        if isinstance(ord_levels, list):
+            res["ordinal_levels"] = {i: str(v) for i, v in enumerate(ord_levels)}
+            res["sort"] = "int"
+            res["min_bound"] = 0.0
+            res["max_bound"] = float(len(ord_levels) - 1)
+        if res.get("sort") not in ("real", "int", "bool"):
+            res["sort"] = "real"
+        if res.get("min_bound") is None:
+            res["min_bound"] = 0.0
+        if res.get("max_bound") is None:
+            res["max_bound"] = 100.0
+        return res
 
 
 class SentenceMapResponse(BaseModel):
-    """Strict schema contract for the sentence mapping LLM phase."""
-
     entities: list[ExtractedEntity] = Field(default_factory=list)
     causal_links: list[CausalLink] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_causal_links(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "causal_links" in data:
+            raw_links = data["causal_links"]
+            if isinstance(raw_links, list):
+                for item in raw_links:
+                    if isinstance(item, dict) and "sentence_id" in item:
+                        item["sentence_id"] = int(item["sentence_id"])
+        return data
+
+
+class SynthesizedEquationSpec(BaseModel):
+    equation_id: str = ""
+    target_var: str
+    dependencies: list[str] = Field(default_factory=list)
+    smt_expression: str
+    natural_language_logic: str = ""
+    source_sentence_ids: list[int] = Field(default_factory=list)
+
+
+class InferredParameterSpec(BaseModel):
+    var_id: str
+    human_name: str = ""
+    sort: str = "real"
+    min_bound: float = 0.0
+    max_bound: float = 100.0
+    default_value: float = 0.0
+    source_sentence_ids: list[int] = Field(default_factory=list)
+
+
+class EquationSynthesisResponse(BaseModel):
+    parameters: dict[str, InferredParameterSpec] = Field(default_factory=dict)
+    equations: dict[str, SynthesizedEquationSpec] = Field(default_factory=dict)

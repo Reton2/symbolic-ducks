@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import HTTPException, WebSocket
 
 from app.schemas import AutonomousPolicyGraph, VariableRole
-from app.services.autoformalisation.autoformalisation import DeepAutoformalizer
+from app.services.autoformalisation import DeepAutoformalizer
 from app.services.dag_runtime import TopologicalDAGRuntime
 from app.services.mandate import AMM_QRM_2026_V5_TEXT
 

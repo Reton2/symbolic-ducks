@@ -42,6 +42,7 @@ async def solve_for_inputs_endpoint(
             dead.add(ws)
     state.clients -= dead
     logger.info("Injected solved telemetry to %d WebSocket clients", len(state.clients))
+    return res
 
 
 @smt_router.post("/counterfactual", response_model=CounterfactualResult)

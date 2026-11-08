@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import json
 import logging
+import re
 from collections.abc import Sequence
 from typing import Any
 
@@ -129,14 +130,24 @@ class Z3CodeSandbox:
                     raise ValueError("Disallowed callable expression in sandbox")
 
     @classmethod
+    def _clean_code(cls, code_str: str) -> str:
+        clean = code_str.strip()
+        if "```" in clean:
+            match = re.search(r"```(?:python)?\s*([\s\S]*?)\s*```", clean)
+            if match:
+                clean = match.group(1).strip()
+        return clean
+
+    @classmethod
     def execute_constraints(
         cls,
         scope: Z3SandboxVarStore,
         llm_code_response: str,
     ) -> tuple[list[BoolRef] | None, str | None]:
         try:
-            cls._validate_ast(llm_code_response)
-            exec(llm_code_response, {"__builtins__": {}}, scope)
+            clean_code = cls._clean_code(llm_code_response)
+            cls._validate_ast(clean_code)
+            exec(clean_code, {"__builtins__": {}}, scope)
             w_hat_rules = scope.get("W_hat", [])
             if not isinstance(w_hat_rules, list) or len(w_hat_rules) == 0:
                 return None, "Empty or missing W_hat list"
