@@ -44,7 +44,7 @@ class AppState:
                     pkt = self.runtime.generate_synthetic_telemetry()
                     res = self.runtime.evaluate_telemetry(pkt)
                     await self.broadcast(
-                        {"type": "TELEMETRY_TICK", "data": res.model_dump()}
+                        {"type": "TELEMETRY_TICK", "data": res.model_dump(mode="json")}
                     )
                 await asyncio.sleep(1.0 / max(1, self.rate_per_sec))
         except asyncio.CancelledError:

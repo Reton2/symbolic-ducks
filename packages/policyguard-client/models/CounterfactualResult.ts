@@ -5,9 +5,6 @@
 import type { ChangedInputSpec } from './ChangedInputSpec';
 import type { CounterfactualStatus } from './CounterfactualStatus';
 import type { VariableSolvedState } from './VariableSolvedState';
-/**
- * Max-SMT optimization result identifying minimal primary input deviations.
- */
 export type CounterfactualResult = {
     status: CounterfactualStatus;
     minimal_input_changes_count?: number;

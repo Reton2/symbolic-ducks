@@ -24,6 +24,8 @@ def _map_role(role: EntityRole) -> VariableRole:
         return VariableRole.INPUT
     if role == EntityRole.OUTPUT:
         return VariableRole.OUTPUT
+    if role == EntityRole.PARAMETER:
+        return VariableRole.PARAMETER
     return VariableRole.INTERMEDIATE
 
 
@@ -124,6 +126,13 @@ class AutonomousGraphBuilder:
         for tid, rule in synthesized_rules.items():
             link = dep_map.get(tid)
             deps = list(link.input_canonical_ids) if link else []
+            s_ids: list[int] = []
+            if link and link.governing_clause_ids:
+                s_ids = [
+                    int(cid.replace("clause_", ""))
+                    for cid in link.governing_clause_ids
+                    if cid.replace("clause_", "").isdigit()
+                ]
             smt_expr = compiler.to_smt_expression(rule.expr_ast)
             equations[tid] = InferredEquation(
                 equation_id=f"eq_{tid}",
@@ -131,6 +140,7 @@ class AutonomousGraphBuilder:
                 dependencies=deps,
                 smt_expression=smt_expr,
                 natural_language_logic=rule.reasoning_trace,
+                source_sentence_ids=s_ids,
             )
             order.append(tid)
 
@@ -145,6 +155,7 @@ class AutonomousGraphBuilder:
                     dependencies=deps,
                     smt_expression=comp_smt,
                     natural_language_logic=f"Continuous risk intensity for {tid}",
+                    source_sentence_ids=s_ids,
                 )
                 order.append(comp_id)
 

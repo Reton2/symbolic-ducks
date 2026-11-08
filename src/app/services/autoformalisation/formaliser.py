@@ -66,16 +66,17 @@ class DeepAutoformalizer:
     async def autoformalize_document(
         self,
         raw_text: str,
+        shuffle_sentences: bool = False,
         use_cache: bool = True,
     ) -> AutonomousPolicyGraph:
-        if use_cache:
+        if use_cache and not shuffle_sentences:
             cached_graph = self.cache.get(raw_text)
             if cached_graph is not None:
                 return cached_graph
 
-        sentences = self.atomizer.atomize(raw_text)
+        sentences = self.atomizer.atomize(raw_text, shuffle=shuffle_sentences)
         graph = await self.pipeline.compile_policy(raw_text, sentences)
 
-        if use_cache:
+        if use_cache and not shuffle_sentences:
             self.cache.put(raw_text, graph)
         return graph

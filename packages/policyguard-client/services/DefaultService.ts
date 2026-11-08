@@ -27,14 +27,23 @@ export class DefaultService {
         });
     }
     /**
-     * Get System State
+     * Ingest Unstructured Document
+     * Ingests unstructured policy text, infers causal graph topology, and hot-swaps Z3.
+     * @param requestBody
      * @returns SystemStateResponse Successful Response
      * @throws ApiError
      */
-    public getSystemStateApiStateGet(): CancelablePromise<SystemStateResponse> {
+    public ingestUnstructuredDocumentApiDocumentIngestPost(
+        requestBody: IngestDocumentRequest,
+    ): CancelablePromise<SystemStateResponse> {
         return this.httpRequest.request({
-            method: 'GET',
-            url: '/api/state',
+            method: 'POST',
+            url: '/api/document/ingest',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
         });
     }
     /**
@@ -58,7 +67,6 @@ export class DefaultService {
     }
     /**
      * Solve For Inputs Endpoint
-     * Abductive Z3 solving: synthesizes foundational telemetry values from desired target constraints.
      * @param requestBody
      * @returns AbductiveSolveResult Successful Response
      * @throws ApiError
@@ -78,7 +86,6 @@ export class DefaultService {
     }
     /**
      * Counterfactual Endpoint
-     * MaxSMT counterfactual search: finds minimal input interventions.
      * @param requestBody
      * @returns CounterfactualResult Successful Response
      * @throws ApiError
@@ -94,6 +101,52 @@ export class DefaultService {
             errors: {
                 422: `Validation Error`,
             },
+        });
+    }
+    /**
+     * Get System State
+     * @returns SystemStateResponse Successful Response
+     * @throws ApiError
+     */
+    public getSystemStateApiStateGet(): CancelablePromise<SystemStateResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/api/state',
+        });
+    }
+    /**
+     * Download Smtlib2
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public downloadSmtlib2ApiStateSmtlib2Get(): CancelablePromise<string> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/api/state/smtlib2',
+        });
+    }
+    /**
+     * View Graph Html
+     * Exports interactive standalone HTML visualization of the active AutonomousPolicyGraph.
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public viewGraphHtmlApiStateHtmlGet(): CancelablePromise<string> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/api/state/html',
+        });
+    }
+    /**
+     * View Graph Html
+     * Exports interactive standalone HTML visualization of the active AutonomousPolicyGraph.
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public viewGraphHtmlApiStateGraphHtmlGet(): CancelablePromise<string> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/api/state/graph.html',
         });
     }
     /**
@@ -128,23 +181,15 @@ export class DefaultService {
         });
     }
     /**
-     * Ingest Unstructured Document
-     * Ingests unstructured policy text, infers causal graph topology, and hot-swaps Z3.
-     * @param requestBody
-     * @returns SystemStateResponse Successful Response
+     * View Graph Html
+     * Exports interactive standalone HTML visualization of the active AutonomousPolicyGraph.
+     * @returns string Successful Response
      * @throws ApiError
      */
-    public ingestUnstructuredDocumentApiIngestDocumentPost(
-        requestBody: IngestDocumentRequest,
-    ): CancelablePromise<SystemStateResponse> {
+    public viewGraphHtmlApiGraphHtmlGet(): CancelablePromise<string> {
         return this.httpRequest.request({
-            method: 'POST',
-            url: '/api/ingest-document',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
+            method: 'GET',
+            url: '/api/graph.html',
         });
     }
 }

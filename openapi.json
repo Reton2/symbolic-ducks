@@ -210,6 +210,44 @@
         }
       }
     },
+    "/api/state/html": {
+      "get": {
+        "summary": "View Graph Html",
+        "description": "Exports interactive standalone HTML visualization of the active AutonomousPolicyGraph.",
+        "operationId": "view_graph_html_api_state_html_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/state/graph.html": {
+      "get": {
+        "summary": "View Graph Html",
+        "description": "Exports interactive standalone HTML visualization of the active AutonomousPolicyGraph.",
+        "operationId": "view_graph_html_api_state_graph_html_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/telemetry/evaluate": {
       "post": {
         "summary": "Evaluate Telemetry Endpoint",
@@ -242,6 +280,43 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/smtlib2": {
+      "get": {
+        "summary": "Download Smtlib2",
+        "operationId": "download_smtlib2_api_smtlib2_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/graph.html": {
+      "get": {
+        "summary": "View Graph Html",
+        "description": "Exports interactive standalone HTML visualization of the active AutonomousPolicyGraph.",
+        "operationId": "view_graph_html_api_graph_html_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -544,6 +619,9 @@
                 },
                 {
                   "type": "boolean"
+                },
+                {
+                  "type": "string"
                 }
               ]
             },

@@ -3,9 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { VariableSolvedState } from './VariableSolvedState';
-/**
- * Separated variable assignments grouped by their topological graph role.
- */
 export type SolvedModelWitness = {
     INPUT?: Record<string, VariableSolvedState>;
     INTERMEDIATE?: Record<string, VariableSolvedState>;

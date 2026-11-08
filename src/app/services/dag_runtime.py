@@ -96,33 +96,98 @@ class TopologicalDAGRuntime:
             code_obj, {"__builtins__": {}}, {**env_helpers, "v": state_dict}
         )
 
-    def _generate_variable_value(
-        self, v: InferredVariable, stress_spike: bool
-    ) -> float | int | bool:
-        mn = v.min_bound
-        mx = v.max_bound
-        if v.sort == VariableSort.INT:
-            return (
-                random.randint(int(mx) - 1, int(mx))
-                if stress_spike
-                else random.randint(int(mn), max(int(mn), int(mx) - 1))
-            )
-        if v.sort == VariableSort.REAL:
-            val = (
-                random.uniform(mn + 0.65 * (mx - mn), mx)
-                if stress_spike
-                else random.uniform(mn, mn + 0.55 * (mx - mn))
-            )
-            return round(val, 2)
-        return stress_spike
-
     def generate_synthetic_telemetry(self) -> dict[str, float | int | bool]:
-        """Generates a random telemetry packet strictly bounded by primary INPUT variables."""
+        """Generates a realistic telemetry packet modeling market microstructure.
+
+        Most ticks (~85%) exhibit nominal operation with realistic micro-fluctuations
+        around default values. Approximately 15% of ticks model focused, domain-specific
+        stress events (e.g. market volatility, liquidity drought, or infrastructure latency)
+        allowing autonomous policy directives to dynamically escalate and de-escalate.
+        """
         packet: dict[str, float | int | bool] = {}
-        stress_spike = random.random() < 0.25
+        is_stress = random.random() < 0.15
+        stress_theme = (
+            random.choice(["volatility", "connectivity", "liquidity", "drawdown"])
+            if is_stress
+            else None
+        )
+
         for vid, v in self.graph.variables.items():
-            if v.role == VariableRole.INPUT:
-                packet[vid] = self._generate_variable_value(v, stress_spike)
+            if v.role != VariableRole.INPUT:
+                continue
+
+            def_val = v.default_value
+            mn, mx = v.min_bound, v.max_bound
+
+            if v.sort == VariableSort.REAL:
+                span = mx - mn
+                def_num = float(def_val)
+                if (
+                    is_stress
+                    and stress_theme == "volatility"
+                    and any(k in vid for k in ("vix", "volatility"))
+                ):
+                    val = random.uniform(32.0, min(mx, 55.0))
+                elif (
+                    is_stress
+                    and stress_theme == "volatility"
+                    and any(k in vid for k in ("return", "momentum"))
+                ):
+                    val = random.uniform(max(mn, -10.0), -2.0)
+                elif is_stress and stress_theme == "liquidity" and ("depth" in vid):
+                    val = max(mn, def_num * random.uniform(0.15, 0.40))
+                elif (
+                    is_stress
+                    and stress_theme == "liquidity"
+                    and ("imbalance" in vid or "spread" in vid)
+                ):
+                    val = random.uniform(def_num * 1.5, min(mx, def_num * 3.5))
+                elif (
+                    is_stress
+                    and stress_theme == "drawdown"
+                    and any(k in vid for k in ("drawdown", "slippage", "drift"))
+                ):
+                    val = random.uniform(def_num * 2.5, min(mx, def_num * 5.0))
+                else:
+                    # Natural continuous Gaussian perturbation around nominal default (~2%)
+                    scale = 0.02 * (span if 0 < span < 1000 else max(1.0, abs(def_num)))
+                    noise = random.gauss(0, scale)
+                    val = min(mx, max(mn, def_num + noise))
+                packet[vid] = round(val, 2)
+
+            elif v.sort == VariableSort.INT:
+                def_int = int(def_val)
+                if (
+                    is_stress
+                    and stress_theme == "connectivity"
+                    and any(
+                        k in vid for k in ("heartbeat", "connection", "fix", "latency")
+                    )
+                    or is_stress
+                    and stress_theme == "drawdown"
+                    and any(k in vid for k in ("margin", "inventory", "deficit"))
+                    or is_stress
+                    and stress_theme == "liquidity"
+                    and any(
+                        k in vid
+                        for k in (
+                            "liquidity_stress",
+                            "congestion",
+                            "throttling",
+                            "cancellation",
+                        )
+                    )
+                ):
+                    packet[vid] = random.choice([1, 2])
+                elif random.random() < 0.02:
+                    # Isolated minor transient pulse
+                    packet[vid] = min(int(mx), def_int + 1)
+                else:
+                    packet[vid] = def_int
+
+            else:
+                packet[vid] = bool(def_val)
+
         return packet
 
     @staticmethod
@@ -145,11 +210,22 @@ class TopologicalDAGRuntime:
         for vid, v in self.graph.variables.items():
             if v.role == VariableRole.OUTPUT:
                 raw_v = state.get(vid, v.default_value)
-                lbl = (
-                    v.ordinal_levels.get(int(raw_v), str(raw_v))
-                    if v.ordinal_levels
-                    else f"{raw_v}%"
-                )
+                lbl = str(raw_v)
+                if v.ordinal_levels:
+                    try:
+                        int_k = int(raw_v)
+                        lbl = (
+                            v.ordinal_levels.get(int_k)
+                            or v.ordinal_levels.get(str(int_k))
+                            or str(raw_v)
+                        )
+                    except (ValueError, TypeError):
+                        lbl = v.ordinal_levels.get(raw_v, str(raw_v))
+                else:
+                    try:
+                        lbl = f"{float(raw_v):.1f}%"
+                    except (ValueError, TypeError):
+                        lbl = f"{raw_v}%"
                 outputs[vid] = TelemetryOutputDirective(
                     human_name=v.human_name,
                     value=raw_v,
@@ -158,7 +234,7 @@ class TopologicalDAGRuntime:
         return outputs
 
     def evaluate_telemetry(
-        self, input_telemetry: dict[str, float | int | bool]
+        self, input_telemetry: dict[str, float | int | bool | str]
     ) -> TelemetryEvaluationResult:
         """Executes a single fast-path pass through the compiled DAG."""
         t0 = time.perf_counter_ns()
@@ -166,11 +242,54 @@ class TopologicalDAGRuntime:
             v.var_id: v.default_value for v in self.graph.variables.values()
         }
         state.update(self.param_values)
-        state.update(input_telemetry)
+
+        for k, v in input_telemetry.items():
+            if v is None:
+                continue
+            if k not in self.graph.variables:
+                state[k] = v
+                continue
+            v_spec = self.graph.variables[k]
+            if v_spec.ordinal_levels and isinstance(v, str):
+                matched_idx: int | None = None
+                raw_str = v.strip()
+                for idx, lvl_name in v_spec.ordinal_levels.items():
+                    if (
+                        str(lvl_name).strip().upper() == raw_str.upper()
+                        or str(idx) == raw_str
+                    ):
+                        matched_idx = int(idx)
+                        break
+                if matched_idx is not None:
+                    state[k] = matched_idx
+                else:
+                    try:
+                        state[k] = int(float(raw_str))
+                    except (ValueError, TypeError):
+                        state[k] = v
+            elif v_spec.sort == VariableSort.INT and isinstance(v, (str, float)):
+                try:
+                    state[k] = int(float(v))
+                except (ValueError, TypeError):
+                    state[k] = v
+            elif v_spec.sort == VariableSort.REAL and isinstance(v, str):
+                try:
+                    state[k] = float(v)
+                except (ValueError, TypeError):
+                    state[k] = v
+            elif v_spec.sort == VariableSort.BOOL and isinstance(v, str):
+                state[k] = v.strip().lower() in ("true", "1", "sat", "t")
+            else:
+                state[k] = v
+
         active_lineage: list[str] = []
 
         for target_id, fn in self.compiled_steps:
-            val = fn(state)
+            try:
+                val = fn(state)
+            except Exception as err:
+                logger.debug("DAG evaluation fallback for %s: %s", target_id, err)
+                val = self.graph.variables[target_id].default_value
             state[target_id] = val
             v_spec = self.graph.variables[target_id]
             if self._is_elevated_state(val, target_id, v_spec):

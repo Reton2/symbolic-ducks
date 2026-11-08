@@ -223,10 +223,16 @@ def export_graph_html(
     displaying topological layers, variables, and symbolic SMT formulas.
     """
     logger.info("Exporting standalone HTML logic graph for %s", graph.graph_id)
-    vars_json = json.dumps({k: v.model_dump() for k, v in graph.variables.items()})
-    eqs_json = json.dumps({k: v.model_dump() for k, v in graph.equations.items()})
+    vars_json = json.dumps(
+        {k: v.model_dump(mode="json") for k, v in graph.variables.items()}
+    )
+    eqs_json = json.dumps(
+        {k: v.model_dump(mode="json") for k, v in graph.equations.items()}
+    )
     topo_json = json.dumps(graph.topological_order)
-    verif_json = json.dumps(verification.model_dump() if verification else {})
+    verif_json = json.dumps(
+        verification.model_dump(mode="json") if verification else {}
+    )
 
     html = (
         GRAPH_HTML_TEMPLATE.replace("__TITLE__", graph.title)

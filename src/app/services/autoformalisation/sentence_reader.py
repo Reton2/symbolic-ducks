@@ -16,7 +16,7 @@ class SentenceAtomizer:
         return re.sub(r"\s+", " ", cleaned).strip()
 
     @classmethod
-    def atomize(cls, raw_text: str) -> list[RawSentence]:
+    def atomize(cls, raw_text: str, shuffle: bool = False) -> list[RawSentence]:
         cleaned = cls.clean_text(raw_text)
         raw_sents = [
             s.strip()
@@ -24,10 +24,17 @@ class SentenceAtomizer:
             if len(s.strip()) > 15
         ]
 
+        if shuffle:
+            import random
+
+            rng = random.Random(42)
+            rng.shuffle(raw_sents)
+
         sentences = [RawSentence(index=idx, text=s) for idx, s in enumerate(raw_sents)]
         logger.info(
-            "[Stage 1 - Format-Blind Atomizer] Segmented text into %d raw sentences",
+            "[Stage 1 - Format-Blind Atomizer] Segmented text into %d raw sentences (shuffled=%s)",
             len(sentences),
+            shuffle,
         )
         return sentences
 

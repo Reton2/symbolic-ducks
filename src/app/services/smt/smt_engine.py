@@ -14,8 +14,12 @@ from z3 import (
     Real,
     RealVal,
     Solver,
+    ToInt,
+    ToReal,
+    is_int,
     is_int_value,
     is_rational_value,
+    is_real,
     is_true,
     sat,
 )
@@ -111,7 +115,12 @@ class DeepSMTSolverEngine:
                 rhs_z3 = evaluate_z3_symbolic_expression(
                     eq.smt_expression, self.z3_vars
                 )
-                constraints.append(self.z3_vars[target_id] == rhs_z3)
+                zvar = self.z3_vars[target_id]
+                if is_real(zvar) and is_int(rhs_z3):
+                    rhs_z3 = ToReal(rhs_z3)
+                elif is_int(zvar) and is_real(rhs_z3):
+                    rhs_z3 = ToInt(rhs_z3)
+                constraints.append(zvar == rhs_z3)
         return constraints
 
     @staticmethod
@@ -214,8 +223,13 @@ class DeepSMTSolverEngine:
                 rhs_z3 = evaluate_z3_symbolic_expression(
                     eq.smt_expression, self.z3_vars
                 )
+                zvar = self.z3_vars[target_id]
+                if is_real(zvar) and is_int(rhs_z3):
+                    rhs_z3 = ToReal(rhs_z3)
+                elif is_int(zvar) and is_real(rhs_z3):
+                    rhs_z3 = ToInt(rhs_z3)
                 t_lit = Bool(f"track_eq_{target_id}")
-                tracked_solver.add(Implies(t_lit, self.z3_vars[target_id] == rhs_z3))
+                tracked_solver.add(Implies(t_lit, zvar == rhs_z3))
                 assumptions.append(t_lit)
                 track_map[str(t_lit)] = ("EQUATION", target_id, eq.source_sentence_ids)
 
@@ -313,7 +327,11 @@ class DeepSMTSolverEngine:
 
         assert out_v.ordinal_levels is not None
         for tier_int, tier_label in out_v.ordinal_levels.items():
-            target_cond = zvar == IntVal(int(tier_int))
+            target_cond = (
+                (zvar == RealVal(float(tier_int)))
+                if out_v.sort == "real"
+                else (zvar == IntVal(int(tier_int)))
+            )
             solver = Solver()
             solver.add(*base_constraints)
             solver.add(target_cond)

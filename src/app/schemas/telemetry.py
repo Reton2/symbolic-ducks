@@ -17,4 +17,4 @@ class TelemetryEvaluationResult(BaseModel):
 
 
 class EvaluateTelemetryRequest(BaseModel):
-    telemetry: dict[str, float | int | bool] = Field(default_factory=dict)
+    telemetry: dict[str, float | int | bool | str] = Field(default_factory=dict)

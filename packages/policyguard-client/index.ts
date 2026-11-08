@@ -18,6 +18,8 @@ export { ConstraintOperator } from './models/ConstraintOperator';
 export type { CounterfactualRequest } from './models/CounterfactualRequest';
 export type { CounterfactualResult } from './models/CounterfactualResult';
 export { CounterfactualStatus } from './models/CounterfactualStatus';
+export { DeadLogicClassification } from './models/DeadLogicClassification';
+export type { DeadLogicDiagnostic } from './models/DeadLogicDiagnostic';
 export type { EvaluateTelemetryRequest } from './models/EvaluateTelemetryRequest';
 export type { GraphVerificationReport } from './models/GraphVerificationReport';
 export type { HTTPValidationError } from './models/HTTPValidationError';

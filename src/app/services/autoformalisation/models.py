@@ -21,6 +21,7 @@ class EntityRole(StrEnum):
     INPUT = "input"
     INTERMEDIATE = "intermediate"
     OUTPUT = "output"
+    PARAMETER = "parameter"
 
 
 class DiscreteStateMapping(BaseModel):
