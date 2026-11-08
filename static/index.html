@@ -2,120 +2,388 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <title>PolicyGuard Deep SMT OS | Schema-Free Autoformalization & Abductive Solver</title>
+  <title>PolicyGuard Deep SMT OS | Neuro-Symbolic Policy Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom scrollbar styling */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b1120; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    .lineage-active {
+      box-shadow: 0 0 0 2px #38bdf8, 0 0 12px rgba(56, 189, 248, 0.4);
+      border-color: #38bdf8 !important;
+    }
+    .lineage-halt {
+      box-shadow: 0 0 0 2px #f43f5e, 0 0 12px rgba(244, 63, 94, 0.4);
+      border-color: #f43f5e !important;
+    }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen p-4">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col p-4 text-xs">
 
-  <!-- Header -->
-  <div class="flex flex-wrap justify-between items-center border-b border-slate-800 pb-3 mb-4 gap-3">
-    <div>
-      <div class="flex items-center gap-2">
-        <span class="h-3 w-3 rounded-full bg-emerald-400 animate-pulse"></span>
-        <h1 class="text-xl font-bold text-emerald-400">PolicyGuard Deep SMT OS</h1>
-        <span class="text-xs font-mono bg-slate-900 border border-slate-700 px-2 py-0.5 rounded text-slate-300">
-          Zero-Schema Ontology Inference • 5-Layer SMT-LIB 2.0 • Abductive Input Solver
-        </span>
+  <!-- Top System Health Header -->
+  <header class="flex flex-wrap justify-between items-center bg-slate-900 border border-slate-800 rounded-xl px-5 py-3 mb-4 shadow-xl gap-4">
+    <div class="flex items-center gap-3">
+      <div class="relative flex items-center justify-center">
+        <span class="animate-ping absolute h-3.5 w-3.5 rounded-full bg-emerald-400 opacity-75"></span>
+        <span class="relative h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
       </div>
-      <p id="doc-title" class="text-xs text-slate-400 mt-1">Autoformalizing unstructured policy...</p>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-base font-extrabold tracking-tight text-white flex items-center gap-1.5">
+            <span class="text-emerald-400 font-mono">PolicyGuard</span> Deep SMT OS
+          </h1>
+          <span class="text-[10px] font-mono bg-emerald-950/70 border border-emerald-700/60 text-emerald-300 px-2 py-0.5 rounded-full">
+            Autonomous Z3 Decision Plane
+          </span>
+        </div>
+        <p id="doc-title" class="text-[11px] text-slate-400 mt-0.5 font-mono">Connecting to symbolic runtime...</p>
+      </div>
     </div>
-    <div class="flex items-center gap-3 text-xs font-mono">
-      <div id="proof-badge" class="bg-emerald-950 text-emerald-300 border border-emerald-700 px-3 py-1.5 rounded font-bold">Z3: VERIFYING</div>
-      <a href="/api/smtlib2" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-700/50 px-3 py-1.5 rounded">↗ View Raw SMT-LIB 2.0</a>
+
+    <!-- Health Proof Badges -->
+    <div class="flex items-center gap-2.5 font-mono text-[11px] flex-wrap">
+      <!-- DAG Consistency Pill -->
+      <div id="consistency-badge" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-bold bg-slate-950 border-slate-700 text-slate-400">
+        <span class="h-2 w-2 rounded-full bg-slate-500"></span>
+        <span>DAG Consistency: CHECKING...</span>
+      </div>
+
+      <!-- Action Reachability Pill -->
+      <div id="reachability-summary-badge" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-bold bg-slate-950 border-slate-700 text-slate-400">
+        <span class="h-2 w-2 rounded-full bg-slate-500"></span>
+        <span>Actions Reachable: -- / --</span>
+      </div>
+
+      <!-- Live Stream Latency -->
+      <div class="bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+        <span class="text-slate-500">Runtime:</span>
+        <span id="stream-latency" class="font-bold text-emerald-400">-- µs</span>
+      </div>
+
+      <a href="/api/smtlib2" target="_blank" class="bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border border-amber-700/50 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+        <span>↗ SMT-LIB 2.0</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Modern Navigation Bar -->
+  <nav class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg p-1.5 mb-4 text-xs font-medium">
+    <button onclick="switchTab('topology')" id="tab-btn-topology" class="tab-btn flex-1 py-2 px-3 rounded-md transition-all font-semibold flex items-center justify-center gap-2 bg-emerald-600 text-white shadow-sm">
+      <span>🌐</span> 5-Layer Visual Topology & Lineage
+    </button>
+    <button onclick="switchTab('reachability')" id="tab-btn-reachability" class="tab-btn flex-1 py-2 px-3 rounded-md transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800 flex items-center justify-center gap-2">
+      <span>🛡️</span> Action Reachability & Dead Logic Diagnostics
+    </button>
+    <button onclick="switchTab('simulator')" id="tab-btn-simulator" class="tab-btn flex-1 py-2 px-3 rounded-md transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800 flex items-center justify-center gap-2">
+      <span>⚡</span> Telemetry Simulator & Abductive Solver
+    </button>
+    <button onclick="switchTab('policy')" id="tab-btn-policy" class="tab-btn flex-1 py-2 px-3 rounded-md transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800 flex items-center justify-center gap-2">
+      <span>📜</span> Policy Mandate & Inferred Ontology
+    </button>
+  </nav>
+
+  <!-- TAB 1: 5-Layer Visual Topology & Live Lineage Explorer -->
+  <div id="tab-topology" class="tab-pane space-y-4 flex-1">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
+      <div class="flex justify-between items-center mb-3">
+        <div>
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span class="text-emerald-400">Layered Topological Decision Graph</span>
+            <span class="text-[10px] font-mono text-slate-400 font-normal">Layer 0 (Sensors) ➔ Layer 1 (Gateways) ➔ Layer 2 (Regimes) ➔ Layer 3 (Controls) ➔ Layer 4 (Arbiters) ➔ Layer 5 (Directives)</span>
+          </h2>
+          <p class="text-[11px] text-slate-400">Click any node to inspect its causal dependencies, symbolic equation, and policy source sentence. Glowing borders indicate active elevated lineage.</p>
+        </div>
+        <div class="flex items-center gap-3 font-mono text-[11px]">
+          <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded bg-emerald-500"></span> Nominal</span>
+          <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded bg-sky-500"></span> Sensor Input</span>
+          <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded bg-purple-500"></span> Gateway / Control</span>
+          <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded bg-rose-500"></span> Directive Output</span>
+        </div>
+      </div>
+
+      <!-- 5-Layer Interactive Board -->
+      <div class="grid grid-cols-5 gap-3.5 min-h-[580px] bg-slate-950 p-3 rounded-lg border border-slate-800/80 overflow-x-auto">
+        <!-- Col 0: Sensors (Layer 0) -->
+        <div class="flex flex-col bg-slate-900/60 rounded-lg p-2.5 border border-slate-800">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 mb-2">
+            <span class="font-bold text-sky-400 uppercase tracking-wider text-[10px]">Layer 0: Primary Telemetry</span>
+            <span id="col-count-0" class="text-[10px] font-mono bg-sky-950 text-sky-300 px-1.5 rounded">35</span>
+          </div>
+          <div id="layer-nodes-0" class="space-y-1.5 overflow-y-auto max-h-[620px] pr-1"></div>
+        </div>
+
+        <!-- Col 1: Gateways (Layer 1) -->
+        <div class="flex flex-col bg-slate-900/60 rounded-lg p-2.5 border border-slate-800">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 mb-2">
+            <span class="font-bold text-amber-400 uppercase tracking-wider text-[10px]">Layer 1: Risk Gateways</span>
+            <span id="col-count-1" class="text-[10px] font-mono bg-amber-950 text-amber-300 px-1.5 rounded">11</span>
+          </div>
+          <div id="layer-nodes-1" class="space-y-1.5 overflow-y-auto max-h-[620px] pr-1"></div>
+        </div>
+
+        <!-- Col 2: Regimes (Layer 2) -->
+        <div class="flex flex-col bg-slate-900/60 rounded-lg p-2.5 border border-slate-800">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 mb-2">
+            <span class="font-bold text-cyan-400 uppercase tracking-wider text-[10px]">Layer 2: Desk Regimes</span>
+            <span id="col-count-2" class="text-[10px] font-mono bg-cyan-950 text-cyan-300 px-1.5 rounded">9</span>
+          </div>
+          <div id="layer-nodes-2" class="space-y-1.5 overflow-y-auto max-h-[620px] pr-1"></div>
+        </div>
+
+        <!-- Col 3: Controls (Layer 3) & Arbiters (Layer 4) -->
+        <div class="flex flex-col bg-slate-900/60 rounded-lg p-2.5 border border-slate-800">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 mb-2">
+            <span class="font-bold text-purple-400 uppercase tracking-wider text-[10px]">Layer 3-4: Controls & Arbiters</span>
+            <span id="col-count-3" class="text-[10px] font-mono bg-purple-950 text-purple-300 px-1.5 rounded">12</span>
+          </div>
+          <div id="layer-nodes-3" class="space-y-1.5 overflow-y-auto max-h-[620px] pr-1"></div>
+        </div>
+
+        <!-- Col 4: Action Directives (Layer 5) -->
+        <div class="flex flex-col bg-slate-900/60 rounded-lg p-2.5 border border-slate-800">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 mb-2">
+            <span class="font-bold text-rose-400 uppercase tracking-wider text-[10px]">Layer 5: Action Directives</span>
+            <span id="col-count-4" class="text-[10px] font-mono bg-rose-950 text-rose-300 px-1.5 rounded">3</span>
+          </div>
+          <div id="layer-nodes-4" class="space-y-2 overflow-y-auto max-h-[620px] pr-1"></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="grid grid-cols-12 gap-4">
-    <!-- COL 1-4: Unstructured Policy Input, Inferred Ontology & Latent Parameters -->
-    <div class="col-span-4 space-y-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400">1. Unstructured Policy Autoformalizer</h2>
+  <!-- TAB 2: Action Reachability & Dead Logic Diagnostics -->
+  <div id="tab-reachability" class="tab-pane hidden space-y-4 flex-1">
+    <!-- Executive Diagnostic Explanation Banner -->
+    <div class="bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/40 border border-slate-800 rounded-xl p-4 shadow-xl">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Formal SMT Reachability & Cause Attribution Engine</h2>
+          </div>
+          <p class="text-slate-300 text-[11px] leading-relaxed max-w-4xl">
+            In autonomous policy graphs, every action directive must have a mathematically proven path from primary indicators.
+            When an operational state is <strong>UNSAT (Dead Logic)</strong>, PolicyGuard uses automated parameter relaxation and Z3 unsat core extraction
+            to isolate the exact root cause:
+          </p>
+          <div class="grid grid-cols-3 gap-3 mt-3 font-mono text-[11px]">
+            <div class="bg-slate-950/80 border border-amber-700/40 p-2.5 rounded-lg">
+              <span class="font-bold text-amber-400">1. PARAMETER MISCALIBRATION</span>
+              <p class="text-slate-400 text-[10px] mt-1 font-sans">The logic structure is sound, but thresholds are tuned too strictly. Reversible via parameter adjustment.</p>
+            </div>
+            <div class="bg-slate-950/80 border border-rose-700/40 p-2.5 rounded-lg">
+              <span class="font-bold text-rose-400">2. WRONG RULE (COMPILER / SMT)</span>
+              <p class="text-slate-400 text-[10px] mt-1 font-sans">An internal equation has an inverted operator or contradictory clause. The rule formulation is mathematically flawed.</p>
+            </div>
+            <div class="bg-slate-950/80 border border-purple-700/40 p-2.5 rounded-lg">
+              <span class="font-bold text-purple-400">3. WRONG POLICY (MANDATE DEFECT)</span>
+              <p class="text-slate-400 text-[10px] mt-1 font-sans">Two distinct legal sentences mandate conflicting requirements simultaneously. Requires risk committee mandate amendment.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg text-right min-w-[200px]">
+          <div class="text-[10px] font-mono text-slate-500 uppercase">Verification Outcome</div>
+          <div id="diag-summary-status" class="text-base font-extrabold text-emerald-400 mt-0.5">VERIFIED</div>
+          <div id="diag-summary-counts" class="text-[11px] font-mono text-slate-300 mt-1">-- Proven Reachable</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Directives Reachability Cards Grid -->
+    <div id="action-directives-reachability-grid" class="grid grid-cols-3 gap-4">
+      <!-- Cards populated dynamically by renderReachabilityTab() -->
+    </div>
+
+    <!-- Active Root Cause Diagnostic Modal / Inspector Panel -->
+    <div id="diagnostic-inspector-panel" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-base">🔬</span>
+          <h3 id="diag-modal-title" class="text-sm font-bold text-white">Root Cause Diagnostic Inspector</h3>
+          <span id="diag-modal-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold"></span>
+        </div>
+        <button onclick="closeDiagnosticPanel()" class="text-slate-400 hover:text-white px-2 py-0.5 rounded hover:bg-slate-800 font-bold">✕ Close</button>
+      </div>
+
+      <div class="grid grid-cols-12 gap-4">
+        <!-- Left: Diagnostic Rationale & Remediation -->
+        <div class="col-span-7 space-y-3">
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">SMT Formal Diagnosis</h4>
+            <p id="diag-explanation" class="text-xs text-slate-200 leading-relaxed"></p>
+          </div>
+
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <h4 class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-1">Recommended Remediation</h4>
+            <p id="diag-remediation" class="text-xs text-emerald-300 leading-relaxed font-mono"></p>
+            <div id="diag-param-action-box" class="mt-2.5 hidden">
+              <button onclick="applySuggestedParameters()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded text-xs transition-colors">
+                Apply Feasible Parameter Overrides to Runtime
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Conflicting Sentences & Equation Unsat Core -->
+        <div class="col-span-5 space-y-3">
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <h4 class="text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-1">Conflicting Policy Prose (Unsat Core)</h4>
+            <div id="diag-sentences-box" class="space-y-1.5 text-[11px] text-slate-300 max-h-48 overflow-y-auto"></div>
+          </div>
+
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <h4 class="text-[11px] font-bold text-sky-400 uppercase tracking-wider mb-1">Conflicting SMT Equations</h4>
+            <div id="diag-equations-box" class="space-y-1 text-[10px] font-mono text-sky-300 max-h-36 overflow-y-auto"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: Telemetry Simulator & Abductive Solver -->
+  <div id="tab-simulator" class="tab-pane hidden space-y-4 flex-1">
+    <div class="grid grid-cols-12 gap-4">
+      <!-- Left (Col 1-7): Interactive Primary Telemetry Simulator with Presets -->
+      <div class="col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-sky-400">Primary Surveillance Indicators (Layer 0 Inputs)</h3>
+            <p class="text-[10px] text-slate-400">Inject custom market scenarios or test single-sensor variations</p>
+          </div>
+          <button onclick="injectManualTelemetry()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1.5 rounded text-xs transition-colors shadow">
+            ⚡ Inject & Evaluate DAG
+          </button>
+        </div>
+
+        <!-- Scenario Quick Presets -->
+        <div>
+          <span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Scenario Quick Presets:</span>
+          <div class="grid grid-cols-4 gap-2 mt-1.5">
+            <button onclick="loadScenario('nominal')" class="p-1.5 bg-slate-950 hover:bg-slate-800 border border-emerald-700/40 rounded text-emerald-300 font-bold text-left text-[11px]">
+              🟢 Nominal Calm Market
+            </button>
+            <button onclick="loadScenario('flash_crash')" class="p-1.5 bg-slate-950 hover:bg-slate-800 border border-rose-700/40 rounded text-rose-300 font-bold text-left text-[11px]">
+              🔴 Flash Crash & Freeze
+            </button>
+            <button onclick="loadScenario('power_loss')" class="p-1.5 bg-slate-950 hover:bg-slate-800 border border-amber-700/40 rounded text-amber-300 font-bold text-left text-[11px]">
+              🟠 Power & FIX Outage
+            </button>
+            <button onclick="loadScenario('gamma_squeeze')" class="p-1.5 bg-slate-950 hover:bg-slate-800 border border-purple-700/40 rounded text-purple-300 font-bold text-left text-[11px]">
+              🟡 Gamma Squeeze Alert
+            </button>
+          </div>
+        </div>
+
+        <!-- Inputs Grid Categorized -->
+        <div id="simulator-inputs-container" class="space-y-2 max-h-[460px] overflow-y-auto pr-1"></div>
+      </div>
+
+      <!-- Right (Col 8-12): Live Directives Output & Abductive Solver -->
+      <div class="col-span-5 space-y-4">
+        <!-- Live Action Directives Monitor -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400">Live Evaluated Master Directives</h3>
+            <span class="text-[10px] font-mono text-slate-500">Fast-Path Runtime</span>
+          </div>
+          <div id="live-directives" class="space-y-2"></div>
+        </div>
+
+        <!-- Abductive Solver ("Solve for Inputs") -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl space-y-2.5">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-purple-400">Abductive SMT Target Solver</h3>
+              <p class="text-[10px] text-slate-400">Synthesize primary inputs required to produce a desired directive</p>
+            </div>
+            <button onclick="solveForInputs()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1.5 rounded text-xs transition-colors shadow">
+              ⚡ Z3 Solve for Inputs
+            </button>
+          </div>
+
+          <div id="abductive-targets-list" class="space-y-1.5 max-h-40 overflow-y-auto pr-1"></div>
+
+          <div id="solved-inputs-box" class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 font-mono text-[11px] max-h-48 overflow-y-auto text-slate-300">
+            Select target constraints above and click "⚡ Z3 Solve for Inputs".
+          </div>
+
+          <div class="pt-1 border-t border-slate-800 flex justify-end">
+            <button onclick="runCounterfactual()" class="bg-sky-700/80 hover:bg-sky-600 text-white font-bold px-2.5 py-1 rounded text-[11px]">
+              🛠️ Minimal Counterfactual to CONTINUE_TRADING
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: Policy Mandate & Inferred Ontology -->
+  <div id="tab-policy" class="tab-pane hidden space-y-4 flex-1">
+    <div class="grid grid-cols-12 gap-4">
+      <!-- Left (Col 1-6): Unstructured Policy Ingestion -->
+      <div class="col-span-6 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl space-y-2.5">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">Unstructured Policy Document Mandate</h3>
           <span id="ontology-counts" class="text-[10px] font-mono text-slate-400"></span>
         </div>
-        <textarea id="raw-doc-input" rows="5" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-[11px] font-mono text-slate-300"></textarea>
-        <div class="grid grid-cols-2 gap-2 mt-2">
-          <button onclick="reingestDocument(false)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-1.5 rounded text-xs">
-            Infer Ontology & SMT Graph
+        <textarea id="raw-doc-input" rows="18" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-[11px] font-mono text-slate-300 leading-relaxed"></textarea>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="reingestDocument(false)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 rounded-lg text-xs transition-colors">
+            Infer Multi-Layer Ontology & SMT Graph
           </button>
-          <button onclick="reingestDocument(true)" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold py-1.5 rounded text-xs">
+          <button onclick="reingestDocument(true)" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold py-2 rounded-lg text-xs transition-colors">
             🔀 Shuffle Sentences & Re-Infer
           </button>
         </div>
-        <div id="compiler-log" class="mt-2 p-2 bg-slate-950 rounded border border-slate-800 font-mono text-[10px] text-sky-400 space-y-1 max-h-24 overflow-y-auto"></div>
+        <div id="compiler-log" class="p-2.5 bg-slate-950 rounded-lg border border-slate-800 font-mono text-[10px] text-sky-400 space-y-1 max-h-32 overflow-y-auto"></div>
       </div>
 
-      <!-- Inferred Latent Threshold Parameters -->
-      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-amber-400">2. Inferred Latent Parameters (Qualitative ➔ Math)</h2>
-          <button onclick="saveParams()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded text-[11px]">Re-Bind Z3 Solver</button>
+      <!-- Right (Col 7-12): Inferred Latent Parameters -->
+      <div class="col-span-6 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl space-y-2.5">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400">Inferred Latent Threshold Parameters (Qualitative ➔ Math)</h3>
+            <p class="text-[10px] text-slate-400">Tune qualitative risk parameters without breaking formal DAG consistency</p>
+          </div>
+          <button onclick="saveParams()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded text-xs transition-colors shadow">
+            Re-Bind Z3 Solver
+          </button>
         </div>
-        <div id="params-container" class="space-y-1.5 max-h-72 overflow-y-auto pr-1"></div>
-      </div>
-    </div>
-
-    <!-- COL 5-8: Abductive "Solve for Inputs" Engine & 5-Layer Topological DAG -->
-    <div class="col-span-4 space-y-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-purple-400">3. Abductive SMT Solver ("Solve for Inputs")</h2>
-          <button onclick="solveForInputs()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1 rounded text-xs">⚡ Z3 Solve for Inputs</button>
-        </div>
-        <p class="text-[11px] text-slate-400 mb-2">Set target state constraints across output directives or regimes. Select an enum state from the dropdown or enter numeric bounds:</p>
-        <div id="target-constraints-list" class="space-y-1.5 max-h-56 overflow-y-auto mb-2 pr-1"></div>
-        <div id="solved-inputs-box" class="bg-slate-950 border border-slate-800 rounded p-2.5 font-mono text-[11px] max-h-52 overflow-y-auto text-slate-300">
-          Select target directive states above and click "⚡ Z3 Solve for Inputs".
-        </div>
-      </div>
-
-      <!-- Inferred Multi-Layer Causal Equations (Topological Order) -->
-      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-sky-400">4. Inferred Multi-Layer Symbolic DAG</h2>
-          <button onclick="runCounterfactual()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-2.5 py-1 rounded text-[10px]">Find Minimal Counterfactual to CONTINUE_TRADING</button>
-        </div>
-        <div id="dag-container" class="space-y-1.5 max-h-60 overflow-y-auto font-mono text-[11px] pr-1"></div>
-      </div>
-    </div>
-
-    <!-- COL 9-12: Live Master Directives, Reachability Proofs & Telemetry Stream -->
-    <div class="col-span-4 space-y-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">5. Live Master Execution Directives (Layer 5 Outputs)</h2>
-        <div id="live-directives" class="space-y-2"></div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">6. Z3 Output State Reachability Proofs</h2>
-        <div id="reachability-list" class="space-y-1 max-h-40 overflow-y-auto font-mono text-[11px]"></div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col h-72">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">7. Live 5-Layer DAG Stream</h2>
-          <span id="stream-latency" class="font-mono text-xs text-emerald-400">-- µs</span>
-        </div>
-        <div id="stream-feed" class="flex-1 overflow-y-auto space-y-1.5 font-mono text-[10px] pr-1"></div>
+        <div id="params-container" class="space-y-1.5 max-h-[520px] overflow-y-auto pr-1"></div>
       </div>
     </div>
   </div>
 
-  <!-- Section 8: Interactive Primary Telemetry Simulator & Input Tester -->
-  <div class="mt-4 bg-slate-900 border border-slate-800 rounded-lg p-3.5">
-    <div class="flex justify-between items-center mb-2">
-      <div class="flex items-center gap-2">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-sky-400">8. Live Primary Telemetry Simulator & Manual Input Tester</h2>
-        <span class="text-[10px] text-slate-400 font-mono">Test arbitrary input combinations using typed enums and continuous bounds</span>
+  <!-- Node Detail Modal -->
+  <div id="node-detail-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-xl w-full p-4 shadow-2xl space-y-3">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <div class="flex items-center gap-2">
+          <span id="modal-role-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950 text-sky-300 border border-sky-800"></span>
+          <h3 id="modal-node-title" class="text-sm font-bold text-white">Node Details</h3>
+        </div>
+        <button onclick="closeNodeModal()" class="text-slate-400 hover:text-white px-2 py-0.5 rounded hover:bg-slate-800 font-bold">✕</button>
       </div>
-      <button onclick="injectManualTelemetry()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1 rounded text-xs">
-        ⚡ Inject Telemetry & Evaluate DAG
-      </button>
+      <div class="space-y-2 text-xs">
+        <div><span class="text-slate-400 font-mono">Identifier:</span> <span id="modal-node-id" class="font-mono text-emerald-400 font-bold"></span></div>
+        <div><span class="text-slate-400 font-mono">Data Sort / Range:</span> <span id="modal-node-sort" class="font-mono text-purple-300"></span></div>
+        <div><span class="text-slate-400 font-mono">Dependencies:</span> <span id="modal-node-deps" class="font-mono text-amber-300"></span></div>
+        <div>
+          <span class="text-slate-400 font-mono">SMT Symbolic Equation:</span>
+          <pre id="modal-node-smt" class="bg-slate-950 border border-slate-800 rounded p-2 text-[10px] text-emerald-300 font-mono mt-1 overflow-x-auto whitespace-pre-wrap"></pre>
+        </div>
+        <div>
+          <span class="text-slate-400 font-mono">Source Mandate Sentence Excerpts:</span>
+          <div id="modal-node-prose" class="bg-slate-950 border border-slate-800 rounded p-2 text-[11px] text-slate-300 mt-1 max-h-36 overflow-y-auto leading-relaxed"></div>
+        </div>
+      </div>
     </div>
-    <div id="telemetry-inputs-grid" class="grid grid-cols-4 gap-2.5 max-h-60 overflow-y-auto pr-1"></div>
   </div>
 
-  <!-- Generated SDK Module Import from packages/policyguard-client -->
+  <!-- JavaScript Module -->
   <script type="module">
     import {
       PolicyGuardClient,
@@ -129,10 +397,26 @@
 
     const client = new PolicyGuardClient();
     let appState = null;
+    let activeDiagnostic = null;
+
+    // Tab Switching Function
+    window.switchTab = function(tabName) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-emerald-600', 'text-white', 'shadow-sm');
+        btn.classList.add('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800');
+      });
+      const targetPane = document.getElementById(`tab-${tabName}`);
+      const targetBtn = document.getElementById(`tab-btn-${tabName}`);
+      if (targetPane) targetPane.classList.remove('hidden');
+      if (targetBtn) {
+        targetBtn.classList.remove('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800');
+        targetBtn.classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
+      }
+    };
 
     function renderTypedInputControl(id, v, currentValue = '') {
       if (v.ordinal_levels && Object.keys(v.ordinal_levels).length > 0) {
-        // Ordinal / Categorical Enum Dropdown
         const options = Object.entries(v.ordinal_levels).map(([idx, name]) => {
           const selected = String(currentValue) === String(name) || String(currentValue) === String(idx) ? 'selected' : '';
           return `<option value="${name}" ${selected}>${name} (${idx})</option>`;
@@ -144,7 +428,6 @@
           </select>
         `;
       } else if (v.sort === VariableSort.BOOL) {
-        // Boolean Enum Dropdown
         const isTrue = currentValue === true || currentValue === 1 || currentValue === 'true' || currentValue === '1';
         const isFalse = currentValue === false || currentValue === 0 || currentValue === 'false' || currentValue === '0';
         return `
@@ -155,7 +438,6 @@
           </select>
         `;
       } else {
-        // Continuous Real or Integer Bound-Aware Input
         const step = v.sort === VariableSort.INT ? '1' : 'any';
         return `
           <input id="${id}" type="number" step="${step}" min="${v.min_bound}" max="${v.max_bound}" value="${currentValue}" placeholder="[${v.min_bound}..${v.max_bound}]" class="w-24 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 font-mono text-[10px] text-purple-300 text-right focus:border-emerald-500 focus:outline-none">
@@ -165,41 +447,236 @@
 
     async function loadState() {
       appState = await client.default.getSystemStateApiStateGet();
-      renderState();
+      renderAll();
     }
 
-    function renderState() {
+    function renderAll() {
+      renderHeader();
+      renderTopologyTab();
+      renderReachabilityTab();
+      renderSimulatorTab();
+      renderPolicyTab();
+    }
+
+    function renderHeader() {
       const g = appState.graph;
       const ver = appState.verification;
       document.getElementById('doc-title').innerText = `${g.title} (${g.graph_id})`;
-      document.getElementById('raw-doc-input').value = g.raw_document_text;
-      document.getElementById('compiler-log').innerHTML = g.cegis_compiler_log.map(l => `<div>• ${l}</div>`).join('');
 
+      // Consistency Badge
+      const isConsistent = ver.is_dag_consistent ?? ver.consistent ?? true;
+      const cBadge = document.getElementById('consistency-badge');
+      if (isConsistent) {
+        cBadge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-bold bg-emerald-950/70 border-emerald-700 text-emerald-300 shadow-sm";
+        cBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400"></span><span>DAG Consistent: YES (SAT)</span>`;
+      } else {
+        cBadge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-bold bg-rose-950/70 border-rose-700 text-rose-300 animate-pulse";
+        cBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-rose-400"></span><span>DAG Inconsistent: UNSAT Defect</span>`;
+      }
+
+      // Reachability Summary Badge
+      const proofs = ver.reachability_proofs || [];
+      const reachableCnt = proofs.filter(p => p.reachable).length;
+      const totalCnt = proofs.length;
+      const rBadge = document.getElementById('reachability-summary-badge');
+      if (reachableCnt === totalCnt && totalCnt > 0) {
+        rBadge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-bold bg-emerald-950/70 border-emerald-700 text-emerald-300 shadow-sm";
+        rBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400"></span><span>Directives: All Reachable (${reachableCnt}/${totalCnt})</span>`;
+      } else {
+        const deadCnt = totalCnt - reachableCnt;
+        rBadge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-bold bg-amber-950/70 border-amber-700 text-amber-300";
+        rBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-amber-400"></span><span>Dead States: ${deadCnt} Unreachable</span>`;
+      }
+    }
+
+    function renderTopologyTab() {
+      const g = appState.graph;
       const vars = Object.values(g.variables);
-      const inCnt = vars.filter(v => v.role === VariableRole.INPUT).length;
-      const pCnt = vars.filter(v => v.role === VariableRole.PARAMETER).length;
-      const intCnt = vars.filter(v => v.role === VariableRole.INTERMEDIATE).length;
-      const outCnt = vars.filter(v => v.role === VariableRole.OUTPUT).length;
-      document.getElementById('ontology-counts').innerText = `${inCnt} In | ${pCnt} Params | ${intCnt} Inter | ${outCnt} Out`;
 
-      const badge = document.getElementById('proof-badge');
-      badge.innerText = `Z3: ${ver.status} (${ver.reachability_proofs.length} States Proven)`;
+      // Distribute nodes across 5 columns by layer_index or role
+      const colNodes = [[], [], [], [], []];
+      vars.forEach(v => {
+        if (v.role === VariableRole.INPUT) colNodes[0].push(v);
+        else if (v.layer_index === 1) colNodes[1].push(v);
+        else if (v.layer_index === 2) colNodes[2].push(v);
+        else if (v.layer_index === 3 || v.layer_index === 4) colNodes[3].push(v);
+        else if (v.role === VariableRole.OUTPUT || v.layer_index >= 5) colNodes[4].push(v);
+        else colNodes[1].push(v);
+      });
 
-      // 1. Render Latent Parameters (Typed per sort/enum)
-      const params = vars.filter(v => v.role === VariableRole.PARAMETER);
-      document.getElementById('params-container').innerHTML = params.map(p => `
-        <div class="bg-slate-950 p-2 rounded border border-slate-800 flex justify-between items-center gap-2">
-          <div class="truncate">
-            <div class="font-mono text-[11px] font-bold text-amber-300 truncate">${p.human_name}</div>
-            <div class="font-mono text-[10px] text-slate-500">${p.var_id} <span class="text-slate-600">(${p.sort.toUpperCase()})</span></div>
+      for (let i = 0; i < 5; i++) {
+        document.getElementById(`col-count-${i}`).innerText = colNodes[i].length;
+        document.getElementById(`layer-nodes-${i}`).innerHTML = colNodes[i].map(v => {
+          const isOut = v.role === VariableRole.OUTPUT;
+          const isIn = v.role === VariableRole.INPUT;
+          const borderClass = isOut ? 'border-rose-900/60 hover:border-rose-500' : (isIn ? 'border-sky-900/60 hover:border-sky-500' : 'border-slate-800 hover:border-slate-600');
+          const textClass = isOut ? 'text-rose-300' : (isIn ? 'text-sky-300' : 'text-slate-300');
+          return `
+            <div id="node-box-${v.var_id}" onclick="openNodeModal('${v.var_id}')" class="p-2 rounded bg-slate-950 border ${borderClass} transition-all cursor-pointer group shadow-sm">
+              <div class="flex justify-between items-center gap-1">
+                <span class="font-mono text-[10px] font-bold ${textClass} truncate max-w-[70%] group-hover:text-white">${v.human_name}</span>
+                <span class="text-[9px] font-mono px-1 rounded bg-slate-900 text-slate-500">${v.sort}</span>
+              </div>
+              <div class="text-[9px] font-mono text-slate-500 truncate mt-0.5">${v.var_id}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function renderReachabilityTab() {
+      const ver = appState.verification;
+      const proofs = ver.reachability_proofs || [];
+      const reachableCnt = proofs.filter(p => p.reachable).length;
+      const deadCnt = proofs.length - reachableCnt;
+
+      document.getElementById('diag-summary-status').innerText = ver.status;
+      document.getElementById('diag-summary-status').className = `text-base font-extrabold mt-0.5 ${deadCnt === 0 ? 'text-emerald-400' : 'text-amber-400'}`;
+      document.getElementById('diag-summary-counts').innerText = `${reachableCnt} / ${proofs.length} States Reachable (${deadCnt} Dead)`;
+
+      // Group proofs by output variable
+      const byVar = {};
+      proofs.forEach(p => {
+        if (!byVar[p.output_var]) byVar[p.output_var] = { human_name: p.human_name, proofs: [] };
+        byVar[p.output_var].proofs.push(p);
+      });
+
+      const grid = document.getElementById('action-directives-reachability-grid');
+      grid.innerHTML = Object.entries(byVar).map(([vid, group]) => {
+        const allReachable = group.proofs.every(p => p.reachable);
+        return `
+          <div class="bg-slate-900 border ${allReachable ? 'border-slate-800' : 'border-amber-700/60'} rounded-xl p-4 shadow-xl flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-start gap-2 mb-2">
+                <div>
+                  <h3 class="text-xs font-bold text-white">${group.human_name}</h3>
+                  <div class="font-mono text-[9px] text-slate-500">${vid}</div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${allReachable ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/60' : 'bg-amber-950 text-amber-300 border border-amber-700/60'}">
+                  ${allReachable ? '100% REACHABLE' : 'DEAD LOGIC DETECTED'}
+                </span>
+              </div>
+
+              <!-- State-by-State Proof Badges -->
+              <div class="space-y-1.5 mt-3">
+                ${group.proofs.map((p, idx) => `
+                  <div class="p-2 rounded bg-slate-950 border ${p.reachable ? 'border-slate-800/80' : 'border-rose-900/60 bg-rose-950/20'} flex justify-between items-center text-xs">
+                    <span class="font-mono text-[11px] ${p.reachable ? 'text-slate-300' : 'text-rose-300 font-bold'} truncate max-w-[65%]">
+                      ${p.target_state}
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[10px] font-bold ${p.reachable ? 'text-emerald-400' : 'text-rose-400'}">
+                        ${p.reachable ? '🟢 SAT' : '🔴 UNSAT'}
+                      </span>
+                      ${!p.reachable && p.diagnostic ? `
+                        <button onclick="inspectDiagnostic('${vid}', ${idx})" class="bg-rose-900/50 hover:bg-rose-800 text-rose-200 border border-rose-700 px-2 py-0.5 rounded text-[10px] font-bold transition-colors">
+                          🔍 Diagnose
+                        </button>
+                      ` : ''}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="mt-3 pt-2 border-t border-slate-800/60 text-[10px] font-mono text-slate-400 flex justify-between">
+              <span>Topological Layer 5</span>
+              <span>${group.proofs.filter(p=>p.reachable).length}/${group.proofs.length} Active Paths</span>
+            </div>
           </div>
-          ${renderTypedInputControl(`param-${p.var_id}`, p, p.default_value)}
-        </div>
-      `).join('');
+        `;
+      }).join('');
+    }
 
-      // 2. Render Target Constraints for "Solve for Inputs"
+    window.inspectDiagnostic = function(vid, proofIndex) {
+      const proofs = appState.verification.reachability_proofs;
+      const match = proofs.find(p => p.output_var === vid && !p.reachable);
+      if (!match || !match.diagnostic) return;
+
+      const d = match.diagnostic;
+      activeDiagnostic = d;
+      const panel = document.getElementById('diagnostic-inspector-panel');
+      panel.classList.remove('hidden');
+
+      document.getElementById('diag-modal-title').innerText = `Root Cause Diagnosis: ${d.human_name} ➔ ${d.target_state}`;
+      const badge = document.getElementById('diag-modal-badge');
+      badge.innerText = d.classification;
+      if (d.classification === 'PARAMETER_MISCALIBRATION') {
+        badge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-700';
+      } else if (d.classification === 'WRONG_RULE_COMPILER') {
+        badge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-700';
+      } else {
+        badge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-700';
+      }
+
+      document.getElementById('diag-explanation').innerText = d.explanation;
+      document.getElementById('diag-remediation').innerText = d.suggested_remediation;
+
+      const paramBox = document.getElementById('diag-param-action-box');
+      if (d.classification === 'PARAMETER_MISCALIBRATION' && Object.keys(d.relaxed_parameter_solutions).length > 0) {
+        paramBox.classList.remove('hidden');
+      } else {
+        paramBox.classList.add('hidden');
+      }
+
+      // Sentences
+      const sBox = document.getElementById('diag-sentences-box');
+      if (d.conflicting_sentences_text && d.conflicting_sentences_text.length > 0) {
+        sBox.innerHTML = d.conflicting_sentences_text.map(st => `
+          <div class="p-1.5 rounded bg-slate-900 border border-slate-800 text-[10px] text-amber-300 font-mono">${st}</div>
+        `).join('');
+      } else {
+        sBox.innerHTML = `<div class="text-slate-500 text-[10px]">No specific textual sentence conflict isolated.</div>`;
+      }
+
+      // Equations
+      const eqBox = document.getElementById('diag-equations-box');
+      if (d.conflicting_equation_ids && d.conflicting_equation_ids.length > 0) {
+        eqBox.innerHTML = d.conflicting_equation_ids.map(eid => {
+          const eq = appState.graph.equations[eid];
+          return `<div class="p-1 bg-slate-900 rounded border border-slate-800">
+            <strong>${eid}:</strong> <span class="text-sky-300">${eq ? eq.smt_expression : 'RHS constraint'}</span>
+          </div>`;
+        }).join('');
+      } else {
+        eqBox.innerHTML = `<div class="text-slate-500 text-[10px]">No equation contradiction in core.</div>`;
+      }
+    };
+
+    window.closeDiagnosticPanel = function() {
+      document.getElementById('diagnostic-inspector-panel').classList.add('hidden');
+    };
+
+    window.applySuggestedParameters = async function() {
+      if (!activeDiagnostic || !activeDiagnostic.relaxed_parameter_solutions) return;
+      appState = await client.default.updateParametersApiParamsUpdatePost({
+        param_overrides: activeDiagnostic.relaxed_parameter_solutions,
+      });
+      renderAll();
+      closeDiagnosticPanel();
+    };
+
+    function renderSimulatorTab() {
+      const vars = Object.values(appState.graph.variables);
+      const inputs = vars.filter(v => v.role === VariableRole.INPUT);
+
+      document.getElementById('simulator-inputs-container').innerHTML = `
+        <div class="grid grid-cols-3 gap-2">
+          ${inputs.map(inp => `
+            <div class="p-2 bg-slate-950 border border-slate-800 rounded flex justify-between items-center text-xs">
+              <div class="truncate max-w-[60%]">
+                <div class="font-mono text-[10px] font-bold text-slate-200 truncate" title="${inp.human_name}">${inp.human_name}</div>
+                <div class="font-mono text-[9px] text-slate-500">${inp.var_id} (${inp.sort})</div>
+              </div>
+              ${renderTypedInputControl(`sim-${inp.var_id}`, inp, inp.default_value)}
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      // Targets for abductive solver
       const targets = vars.filter(v => v.role === VariableRole.OUTPUT || v.role === VariableRole.INTERMEDIATE).sort((a,b) => b.layer_index - a.layer_index);
-      document.getElementById('target-constraints-list').innerHTML = targets.map(t => {
+      document.getElementById('abductive-targets-list').innerHTML = targets.map(t => {
         const isOrdinal = t.ordinal_levels && Object.keys(t.ordinal_levels).length > 0;
         const sortBadge = isOrdinal ? 'ENUM' : t.sort.toUpperCase();
         return `
@@ -213,109 +690,99 @@
                 <option value="!=">!=</option>
                 <option value=">=">&gt;=</option>
                 <option value="<=">&lt;=</option>
-                <option value=">">&gt;</option>
-                <option value="<">&lt;</option>
               </select>
               ${renderTypedInputControl(`val-${t.var_id}`, t, '')}
             </div>
           </div>
         `;
       }).join('');
+    }
 
-      // 3. Render Topological DAG Equations
-      document.getElementById('dag-container').innerHTML = g.topological_order.map(tid => {
-        const eq = g.equations[tid];
-        const v = g.variables[tid];
-        return `<div class="p-2 bg-slate-950 border border-slate-800 rounded">
-          <div class="flex justify-between text-sky-400 font-bold">
-            <span>[Layer ${v.layer_index}] ${v.human_name}</span>
-            <span class="text-[10px] text-slate-500">${v.role} • ${v.sort.toUpperCase()}</span>
+    function renderPolicyTab() {
+      const g = appState.graph;
+      document.getElementById('raw-doc-input').value = g.raw_document_text;
+      document.getElementById('compiler-log').innerHTML = g.cegis_compiler_log.map(l => `<div>• ${l}</div>`).join('');
+
+      const vars = Object.values(g.variables);
+      const inCnt = vars.filter(v => v.role === VariableRole.INPUT).length;
+      const pCnt = vars.filter(v => v.role === VariableRole.PARAMETER).length;
+      const intCnt = vars.filter(v => v.role === VariableRole.INTERMEDIATE).length;
+      const outCnt = vars.filter(v => v.role === VariableRole.OUTPUT).length;
+      document.getElementById('ontology-counts').innerText = `${inCnt} In | ${pCnt} Params | ${intCnt} Inter | ${outCnt} Out`;
+
+      const params = vars.filter(v => v.role === VariableRole.PARAMETER);
+      document.getElementById('params-container').innerHTML = params.map(p => `
+        <div class="bg-slate-950 p-2 rounded border border-slate-800 flex justify-between items-center gap-2">
+          <div class="truncate">
+            <div class="font-mono text-[11px] font-bold text-amber-300 truncate">${p.human_name}</div>
+            <div class="font-mono text-[10px] text-slate-500">${p.var_id} <span class="text-slate-600">(${p.sort.toUpperCase()})</span></div>
           </div>
-          <div class="text-slate-400 text-[10px] mt-0.5">Deps: ${eq.dependencies.join(', ')}</div>
-          <div class="text-emerald-300 text-[10px] mt-0.5 truncate">SMT: ${eq.smt_expression}</div>
-        </div>`;
-      }).join('');
-
-      // 4. Render Reachability Proofs
-      document.getElementById('reachability-list').innerHTML = ver.reachability_proofs.map(r => `
-        <div class="flex justify-between p-1.5 bg-slate-950 rounded border border-slate-800">
-          <span class="text-slate-300 truncate">${r.human_name}: <strong>${r.target_state}</strong></span>
-          <span class="${r.reachable ? 'text-emerald-400' : 'text-rose-400'} font-bold">${r.reachable ? 'SAT (Reachable)' : 'UNSAT (Dead)'}</span>
-        </div>
-      `).join('');
-
-      // 5. Render Primary Telemetry Simulator Inputs
-      const primaryInputs = vars.filter(v => v.role === VariableRole.INPUT);
-      document.getElementById('telemetry-inputs-grid').innerHTML = primaryInputs.map(inp => `
-        <div class="p-2 bg-slate-950 border border-slate-800 rounded flex justify-between items-center text-xs">
-          <div class="truncate max-w-[60%]">
-            <div class="font-mono text-[10px] font-bold text-slate-200 truncate">${inp.human_name}</div>
-            <div class="font-mono text-[9px] text-slate-500">${inp.var_id} (${inp.sort})</div>
-          </div>
-          ${renderTypedInputControl(`sim-${inp.var_id}`, inp, inp.default_value)}
+          ${renderTypedInputControl(`param-${p.var_id}`, p, p.default_value)}
         </div>
       `).join('');
     }
 
-    async function reingestDocument(shuffle = false) {
-      const raw_text = document.getElementById('raw-doc-input').value;
-      appState = await client.default.ingestUnstructuredDocumentApiIngestDocumentPost({
-        raw_text,
-        shuffle_sentences: shuffle,
-      });
-      renderState();
-    }
+    // Node Modal Handlers
+    window.openNodeModal = function(vid) {
+      const v = appState.graph.variables[vid];
+      if (!v) return;
+      const eq = appState.graph.equations[vid];
 
-    async function saveParams() {
-      const overrides = {};
-      Object.values(appState.graph.variables).filter(v => v.role === VariableRole.PARAMETER).forEach(p => {
-        const el = document.getElementById(`param-${p.var_id}`);
-        if (!el) return;
-        const raw = el.value.trim();
-        if (raw !== '') {
-          overrides[p.var_id] = parseFloat(raw);
-        }
-      });
-      appState = await client.default.updateParametersApiParamsUpdatePost({
-        param_overrides: overrides,
-      });
-      renderState();
-    }
+      document.getElementById('modal-node-title').innerText = v.human_name;
+      document.getElementById('modal-node-id').innerText = v.var_id;
+      document.getElementById('modal-role-badge').innerText = `${v.role} • LAYER ${v.layer_index}`;
+      document.getElementById('modal-node-sort').innerText = `${v.sort.toUpperCase()} [${v.min_bound} .. ${v.max_bound}]`;
+      document.getElementById('modal-node-deps').innerText = eq && eq.dependencies.length > 0 ? eq.dependencies.join(', ') : '(None - Root Indicator)';
+      document.getElementById('modal-node-smt').innerText = eq ? eq.smt_expression : '(Primary Sensor Input)';
 
-    async function solveForInputs() {
-      const target_constraints = {};
-      Object.values(appState.graph.variables).filter(v => v.role === VariableRole.OUTPUT || v.role === VariableRole.INTERMEDIATE).forEach(t => {
-        const el = document.getElementById(`val-${t.var_id}`);
-        if (!el) return;
-        const val = el.value.trim();
-        const op = document.getElementById(`op-${t.var_id}`).value;
-        if (val !== '') {
-          // Supports string enum names (e.g. "HALT") as well as numeric values
-          target_constraints[t.var_id] = { op, val: val };
-        }
-      });
-      if (Object.keys(target_constraints).length === 0) {
-        // Default target: Solve for Master Operating Directive == 2 (EMERGENCY_HALT)
-        const firstOut = Object.values(appState.graph.variables).find(v => v.role === VariableRole.OUTPUT && v.sort === VariableSort.INT);
-        if (firstOut) target_constraints[firstOut.var_id] = { op: "==", val: firstOut.max_bound || 2 };
-      }
-      const data = await client.default.solveForInputsEndpointApiSmtSolveInputsPost({
-        target_constraints,
-      });
-      const box = document.getElementById('solved-inputs-box');
-      if (data.status === AbductiveSolveStatus.SATISFIABLE && data.solved_state) {
-        const inputs = Object.entries(data.solved_state.INPUT);
-        const outputs = Object.entries(data.solved_state.OUTPUT);
-        box.innerHTML = `
-          <div class="text-emerald-400 font-bold mb-1">✅ Z3 Solved ${inputs.length} Primary Telemetry Inputs for Targets (${data.applied_targets.join(', ')}):</div>
-          <div class="text-purple-300 mb-1.5">Resulting Outputs: ${outputs.map(([k,v]) => `${v.human_name}=${v.formatted}`).join(' | ')}</div>
-          <div class="space-y-0.5 border-t border-slate-800 pt-1">
-            ${inputs.map(([k, v]) => `<div>• <span class="text-slate-400">${v.human_name}:</span> <strong class="text-amber-300">${v.formatted}</strong></div>`).join('')}
-          </div>
-        `;
+      const proseBox = document.getElementById('modal-node-prose');
+      if (v.source_excerpts && v.source_excerpts.length > 0) {
+        proseBox.innerHTML = v.source_excerpts.map(ex => `<div class="mb-1 pb-1 border-b border-slate-900">• ${ex}</div>`).join('');
       } else {
-        box.innerHTML = `<div class="text-rose-400 font-bold">❌ ${data.message || 'Constraints are unsatisfiable.'}</div>`;
+        proseBox.innerText = 'Foundational surveillance telemetry indicator.';
       }
+
+      document.getElementById('node-detail-modal').classList.remove('hidden');
+    };
+
+    window.closeNodeModal = function() {
+      document.getElementById('node-detail-modal').classList.add('hidden');
+    };
+
+    // Scenario Presets
+    window.loadScenario = function(scenarioName) {
+      const vars = appState.graph.variables;
+      if (scenarioName === 'nominal') {
+        Object.values(vars).filter(v => v.role === VariableRole.INPUT).forEach(inp => {
+          const el = document.getElementById(`sim-${inp.var_id}`);
+          if (el) {
+            if (inp.sort === VariableSort.BOOL) el.value = "false";
+            else if (inp.ordinal_levels) el.value = Object.values(inp.ordinal_levels)[0];
+            else el.value = inp.default_value;
+          }
+        });
+      } else if (scenarioName === 'flash_crash') {
+        // High volatility, wide spread, drawdown
+        setSimVal('s_flash_crash_detected', 'true');
+        setSimVal('s_liquidity_dryup', 'true');
+        setSimVal('n_vix_index_level', 48.5);
+        setSimVal('n_bid_ask_spread_bps', 28.0);
+        setSimVal('n_intraday_pnl_drawdown_pct', 4.5);
+      } else if (scenarioName === 'power_loss') {
+        setSimVal('c_colocation_power_feed', 'TOTAL_POWER_FAILURE');
+        setSimVal('c_fix_session_state', 'DROPPED');
+        setSimVal('n_feed_message_rate_per_sec', 9800);
+      } else if (scenarioName === 'gamma_squeeze') {
+        setSimVal('o_gamma_squeeze_tier', 2);
+        setSimVal('c_prime_locate_status', 'LOCATE_FAILED');
+        setSimVal('c_short_sale_mode', 'UPTICK_RULE_201');
+      }
+      injectManualTelemetry();
+    };
+
+    function setSimVal(vid, val) {
+      const el = document.getElementById(`sim-${vid}`);
+      if (el) el.value = String(val);
     }
 
     async function injectManualTelemetry() {
@@ -336,7 +803,40 @@
         telemetry,
       });
       document.getElementById('stream-latency').innerText = `${data.latency_us} µs`;
-      console.log("Manual telemetry evaluated successfully:", data);
+    }
+
+    async function solveForInputs() {
+      const target_constraints = {};
+      Object.values(appState.graph.variables).filter(v => v.role === VariableRole.OUTPUT || v.role === VariableRole.INTERMEDIATE).forEach(t => {
+        const el = document.getElementById(`val-${t.var_id}`);
+        if (!el) return;
+        const val = el.value.trim();
+        const op = document.getElementById(`op-${t.var_id}`).value;
+        if (val !== '') {
+          target_constraints[t.var_id] = { op, val: val };
+        }
+      });
+      if (Object.keys(target_constraints).length === 0) {
+        const firstOut = Object.values(appState.graph.variables).find(v => v.role === VariableRole.OUTPUT && v.sort === VariableSort.INT);
+        if (firstOut) target_constraints[firstOut.var_id] = { op: "==", val: firstOut.max_bound || 2 };
+      }
+      const data = await client.default.solveForInputsEndpointApiSmtSolveInputsPost({
+        target_constraints,
+      });
+      const box = document.getElementById('solved-inputs-box');
+      if (data.status === AbductiveSolveStatus.SATISFIABLE && data.solved_state) {
+        const inputs = Object.entries(data.solved_state.INPUT);
+        const outputs = Object.entries(data.solved_state.OUTPUT);
+        box.innerHTML = `
+          <div class="text-emerald-400 font-bold mb-1">✅ Z3 Synthesized ${inputs.length} Foundational Inputs:</div>
+          <div class="text-purple-300 mb-1.5">Directives: ${outputs.map(([k,v]) => `${v.human_name}=${v.formatted}`).join(' | ')}</div>
+          <div class="space-y-0.5 border-t border-slate-800 pt-1">
+            ${inputs.map(([k, v]) => `<div>• <span class="text-slate-400">${v.human_name}:</span> <strong class="text-amber-300">${v.formatted}</strong></div>`).join('')}
+          </div>
+        `;
+      } else {
+        box.innerHTML = `<div class="text-rose-400 font-bold">❌ ${data.message || 'Constraints are unsatisfiable under active parameters.'}</div>`;
+      }
     }
 
     async function runCounterfactual() {
@@ -350,14 +850,39 @@
       if (data.status === CounterfactualStatus.COUNTERFACTUAL_FOUND) {
         const changes = Object.values(data.changed_inputs);
         box.innerHTML = `
-          <div class="text-sky-400 font-bold mb-1">🛠️ MaxSMT Counterfactual Repair (${changes.length} Minimal Input Adjustments to reach Nominal/CONTINUE):</div>
+          <div class="text-sky-400 font-bold mb-1">🛠️ MaxSMT Minimal Counterfactual (${changes.length} Primary Input Adjustments to CONTINUE_TRADING):</div>
           ${changes.length === 0 ? '<div>System is already in Nominal state (0 changes required).</div>' :
             changes.map(c => `<div>• <strong>${c.human_name}:</strong> ${c.previous_value} ➔ <span class="text-emerald-400 font-bold">${c.required_value}</span></div>`).join('')}
         `;
       }
     }
 
-    // Connect WebSocket
+    async function reingestDocument(shuffle = false) {
+      const raw_text = document.getElementById('raw-doc-input').value;
+      appState = await client.default.ingestUnstructuredDocumentApiIngestDocumentPost({
+        raw_text,
+        shuffle_sentences: shuffle,
+      });
+      renderAll();
+    }
+
+    async function saveParams() {
+      const overrides = {};
+      Object.values(appState.graph.variables).filter(v => v.role === VariableRole.PARAMETER).forEach(p => {
+        const el = document.getElementById(`param-${p.var_id}`);
+        if (!el) return;
+        const raw = el.value.trim();
+        if (raw !== '') {
+          overrides[p.var_id] = parseFloat(raw);
+        }
+      });
+      appState = await client.default.updateParametersApiParamsUpdatePost({
+        param_overrides: overrides,
+      });
+      renderAll();
+    }
+
+    // Connect WebSocket for live telemetry streaming and elevated lineage glowing
     const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${wsProto}//${location.host}/ws`);
     ws.onmessage = (e) => {
@@ -365,6 +890,7 @@
       const d = msg.data;
       document.getElementById('stream-latency').innerText = `${d.latency_us} µs`;
 
+      // Update Live Directives
       document.getElementById('live-directives').innerHTML = Object.entries(d.outputs).map(([k, v]) => `
         <div class="p-2.5 rounded border ${String(v.label).includes('HALT') || String(v.label).includes('Flatten') ? 'bg-rose-950/40 border-rose-700' : 'bg-slate-950 border-slate-800'} flex justify-between items-center">
           <span class="text-xs font-semibold text-slate-200">${v.human_name}</span>
@@ -372,25 +898,20 @@
         </div>
       `).join('');
 
-      const feed = document.getElementById('stream-feed');
-      const item = document.createElement('div');
-      const isSolved = msg.type === 'SOLVED_INJECTION';
-      const isManual = msg.type === 'MANUAL_INJECTION';
-      item.className = `p-1.5 rounded border ${isSolved ? 'bg-purple-950/40 border-purple-500' : (isManual ? 'bg-sky-950/40 border-sky-500' : 'bg-slate-950 border-slate-800')}`;
-      item.innerHTML = `
-        <div class="flex justify-between">
-          <span class="font-bold ${isSolved ? 'text-purple-300' : (isManual ? 'text-sky-300' : 'text-emerald-400')}">
-            ${isSolved ? '[Z3 SOLVED INPUT INJECTION]' : (isManual ? '[MANUAL SIMULATION TICK]' : 'DAG_EVAL')}
-          </span>
-          <span class="text-slate-500">${d.latency_us} µs</span>
-        </div>
-        <div class="text-slate-400 truncate">Active Lineage (${d.elevated_lineage_nodes.length}): ${d.elevated_lineage_nodes.slice(0, 5).join(' ➔ ')}</div>
-      `;
-      feed.prepend(item);
-      if (feed.children.length > 25) feed.removeChild(feed.lastChild);
+      // Glow lineage active nodes in Topology view
+      document.querySelectorAll('[id^="node-box-"]').forEach(el => {
+        el.classList.remove('lineage-active', 'lineage-halt');
+      });
+      (d.elevated_lineage_nodes || []).forEach(nid => {
+        const el = document.getElementById(`node-box-${nid}`);
+        if (el) {
+          const isHalt = nid.includes('halt') || nid.includes('liquidate');
+          el.classList.add(isHalt ? 'lineage-halt' : 'lineage-active');
+        }
+      });
     };
 
-    // Attach handlers to window for inline onclick attributes
+    // Attach to window
     window.reingestDocument = reingestDocument;
     window.saveParams = saveParams;
     window.solveForInputs = solveForInputs;
